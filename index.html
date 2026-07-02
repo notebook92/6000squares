@@ -1,0 +1,1547 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6000 Squares — Claim Your Square</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --red:#B22234;--red2:#e53935;--navy:#1a2a4a;--navy2:#0d1f3c;
+  --gold:#C8950A;--gold2:#f0a500;--bg:#888888;--text:#1a1a1a;
+  --white:#fff;--gray:#666;--gray2:#ddd;--cell-bg:#f5f5f5;
+  --cell-border:rgba(200,200,200,0.6);--radius:4px
+}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;display:flex;flex-direction:column;overflow-y:auto}
+:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+header{background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:center;padding:12px 24px;border-bottom:3px solid var(--red);flex-wrap:wrap;gap:8px;flex-shrink:0;position:relative}
+.logo-wrap{margin-right:auto}
+.logo-main{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:#fff;line-height:1}
+.logo-main span{color:#ef5350}
+.header-slogan{font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--white);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);white-space:nowrap;z-index:1}
+.header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.sq-count-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 16px;font-size:13px;color:rgba(255,255,255,.85);white-space:nowrap}
+.sq-count-pill strong{color:var(--gold);font-size:15px}
+.btn-claim{background:var(--red);color:#fff;border:none;padding:9px 20px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;border-radius:var(--radius);transition:background .15s}
+.btn-claim:hover{background:#8b0000}
+.rwb{display:flex;height:4px;flex-shrink:0;background:var(--red)}
+#main-layout{display:flex;gap:12px;padding:12px;align-items:flex-start;justify-content:center;flex:1}
+#viewport-wrap{display:flex;flex-direction:column;gap:0;flex-shrink:0;}
+#viewport-container{background:var(--white);border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.3);position:relative;user-select:none;overflow:visible}
+#mosaic-canvas{display:block;position:relative;image-rendering:pixelated}
+.sq-tooltip{position:fixed;pointer-events:none;z-index:9999;background:rgba(20,20,20,.9);color:#fff;font-size:11px;padding:6px 9px;border-radius:5px;max-width:180px;line-height:1.5;white-space:pre-wrap;display:none;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+#board-loading{position:absolute;inset:0;background:rgba(245,245,245,.88);display:flex;align-items:center;justify-content:center;z-index:10;border-radius:4px}
+#board-loading-inner{display:flex;flex-direction:column;align-items:center;gap:10px}
+#board-loading-inner p{font-size:13px;color:var(--navy);font-weight:600}
+.spinner{width:28px;height:28px;border:3px solid rgba(178,34,52,.25);border-top-color:var(--red);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.modal-overlay.open{display:flex}
+.modal-box{background:#fff;border-radius:8px;border-top:4px solid var(--red);width:92vw;max-width:860px;max-height:92vh;overflow-y:auto;padding:22px 26px;position:relative;color:var(--text)}
+.modal-close{position:absolute;top:12px;right:16px;background:none;border:none;font-size:22px;cursor:pointer;color:#777;line-height:1}
+.modal-close:hover{color:#000}
+.modal-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:var(--navy);line-height:1.1}
+.modal-sub{font-size:12px;color:#888;margin-top:2px;margin-bottom:12px}
+.block-picker-section{margin-bottom:14px}
+.block-picker-label{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--navy);margin-bottom:8px}
+.block-picker-grid{display:flex;flex-wrap:wrap;gap:6px}
+.block-option{display:flex;flex-direction:column;align-items:center;gap:4px;padding:7px 8px;border:1.5px solid #ddd;border-radius:5px;background:#f9f9f9;cursor:pointer;transition:all .12s;min-width:64px}
+.block-option:hover{border-color:#999;background:#f0f0f0}
+.block-option.selected{border-color:var(--red);background:#fff5f5}
+.block-option.disabled{opacity:.35;cursor:not-allowed;pointer-events:none;filter:grayscale(1)}
+.block-shape-preview{display:grid;gap:2px}
+.block-shape-preview .bsp-cell{background:#ddd;border-radius:1px}
+.block-option.selected .bsp-cell{background:var(--red)}
+.block-option-label{font-size:10px;color:#666;font-weight:600;white-space:nowrap}
+.block-option-price{font-size:10px;color:var(--navy);font-weight:700}
+.block-option-full{font-size:9px;color:var(--red2);font-weight:700;white-space:nowrap}
+.tab-row{display:grid;grid-template-columns:1fr 1fr;gap:0;margin-bottom:14px;border:1.5px solid #ddd;border-radius:var(--radius);overflow:hidden}
+.tab-btn{padding:9px;font-size:13px;font-weight:600;border:none;background:#f5f5f5;color:#555;cursor:pointer;transition:all .12s}
+.tab-btn:first-child{border-right:1.5px solid #ddd}
+.tab-btn.active{background:var(--red);color:#fff}
+.step0-body{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.draw-left{display:flex;flex-direction:column;gap:8px}
+.section-heading{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:1px;color:var(--navy);margin-bottom:2px}
+.draw-controls-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.brush-label{font-size:11px;color:#888;white-space:nowrap}
+.brush-row{display:flex;align-items:center;gap:6px}
+.brush-row input[type="range"]{width:80px;accent-color:var(--red)}
+.brush-row input[type="number"]{width:38px;border:1.5px solid #ddd;border-radius:3px;padding:3px 4px;font-size:11px;text-align:center}
+.hex-display{font-size:11px;font-family:monospace;background:#f5f5f5;border:1.5px solid #ddd;border-radius:3px;padding:3px 8px;color:#333}
+.picker-wrap{display:flex;flex-direction:column;gap:4px}
+#sv-canvas{width:100%;height:130px;border-radius:3px;cursor:crosshair;display:block}
+#spectrum-bar{width:100%;height:16px;border-radius:3px;cursor:crosshair;display:block;border:1px solid #ddd}
+.canvas-tools-row{display:flex;gap:6px;align-items:stretch}
+.draw-canvas-wrap{position:relative;width:100%;display:flex;align-items:center;justify-content:center;background:#f0f0f0;border-radius:3px;min-height:150px}
+#draw-canvas{display:block;width:auto;height:auto;max-width:100%;max-height:100%;border:1.5px solid #ddd;background:#fff;border-radius:3px;cursor:none}
+#draw-grid-overlay{position:absolute;pointer-events:none;display:none;border-radius:3px}
+#brush-cursor{position:fixed;pointer-events:none;border:2px solid rgba(0,0,0,0.7);border-radius:50%;box-shadow:0 0 0 1px rgba(255,255,255,0.6);display:none;transform:translate(-50%,-50%);z-index:9999}
+#upload-grid-overlay{position:absolute;pointer-events:none;display:none;border-radius:3px;top:0;left:0}
+.grid-toggle-btn{font-size:11px;padding:4px 10px;border:1.5px solid #ccc;background:#f5f5f5;border-radius:3px;cursor:pointer;color:#555;display:flex;align-items:center;gap:4px;white-space:nowrap}
+.grid-toggle-btn:hover{background:#e8e8e8}
+.grid-toggle-btn.active{background:#e8f4ff;border-color:#6ba3c8;color:#1a4a72}
+#eyedropper-loupe{position:fixed;pointer-events:none;z-index:10000;display:none;border-radius:50%;overflow:hidden;border:2px solid #333;box-shadow:0 2px 12px rgba(0,0,0,.5)}
+.tool-col{display:flex;flex-direction:column;gap:4px;justify-content:flex-start;padding-top:2px}
+.tool-icon-btn{width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:1.5px solid #ddd;background:#f5f5f5;border-radius:var(--radius);cursor:pointer;transition:all .12s;flex-shrink:0;padding:0}
+.tool-icon-btn svg{display:block}
+.tool-icon-btn:hover{background:#e8e8e8;border-color:#bbb}
+.tool-icon-btn.active{background:var(--red);border-color:var(--red)}
+.tool-icon-btn.active svg *{stroke:#fff!important}
+.tool-icon-btn.active svg [data-fill]{fill:#fff!important;stroke:none!important}
+.active-swatch-btn{width:32px;height:32px;border-radius:var(--radius);border:2px solid #ccc;cursor:pointer;flex-shrink:0;display:block}
+.active-swatch-btn:hover{border-color:#888}
+.tool-divider{height:1px;background:#e0e0e0;margin:2px 0}
+.undo-row{display:flex;gap:5px;margin-top:2px}
+.undo-row button{flex:1;padding:5px 4px;font-size:11px;border:1.5px solid #ddd;background:#f5f5f5;border-radius:var(--radius);cursor:pointer;color:#555;display:flex;align-items:center;justify-content:center;gap:4px}
+.undo-row button:hover{background:#e8e8e8}
+#shade-picker-wrap{display:none;flex-direction:column;gap:5px;background:#f8f8f8;border:1.5px solid #ddd;border-radius:6px;padding:8px;margin-top:2px}
+#shade-picker-wrap.open{display:flex}
+.color-input-row{display:flex;align-items:center;gap:6px}
+.color-input-row label{font-size:10px;color:#888}
+#color-text-input{border:1.5px solid #ddd;border-radius:3px;padding:4px 7px;font-size:11px;font-family:monospace;width:110px;outline:none}
+#color-text-input:focus{border-color:var(--red)}
+.upload-left{display:flex;flex-direction:column;gap:8px}
+.upload-instructions{font-size:11px;color:#666;line-height:1.6}
+.upload-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.upload-controls label{font-size:11px;color:#666}
+.upload-controls input[type="range"]{width:80px;accent-color:var(--red)}
+.upload-controls button{font-size:11px;padding:4px 10px;border:1px solid #ccc;background:#f5f5f5;border-radius:3px;cursor:pointer}
+.upload-controls button:hover{background:#e8e8e8}
+#upload-zone{border:2px dashed #ccc;border-radius:6px;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;background:#fafafa;transition:all .15s}
+#upload-zone:hover,.drag-over{border-color:var(--red)!important;background:#fff5f5!important}
+#upload-zone p{font-size:11px;color:var(--red)}
+#upload-zone strong{font-size:15px;color:#555;font-weight:700;letter-spacing:1px}
+#upload-file{display:none}
+#crop-ui{display:none;flex-direction:column;gap:6px}
+#crop-viewport{width:100%;position:relative;overflow:hidden;border:2px solid #ccc;border-radius:3px;cursor:grab;background:#e0e0e0}
+#crop-viewport.grabbing{cursor:grabbing}
+#crop-img{position:absolute;transform-origin:top left;user-select:none;pointer-events:none}
+.crop-hint{font-size:10px;color:#aaa;text-align:center}
+.upload-undo-row{display:flex;gap:5px;margin-top:0}
+.upload-undo-row button{flex:1;padding:5px 4px;font-size:11px;border:1.5px solid #ddd;background:#f5f5f5;border-radius:var(--radius);cursor:pointer;color:#555;display:flex;align-items:center;justify-content:center;gap:4px}
+.upload-undo-row button:hover{background:#e8e8e8}
+.step0-right{display:flex;flex-direction:column;gap:10px}
+.rules-box{background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius);padding:9px 11px;font-size:11px;color:#5a4000;line-height:1.7}
+.rules-box strong{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--red);margin-bottom:3px}
+.rules-footnote{font-size:10px;color:#888;line-height:1.5}
+.field-label{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:3px;display:block}
+.field-input{width:100%;border:1.5px solid #ddd;border-radius:var(--radius);padding:7px 9px;font-size:12px;font-family:'Inter',sans-serif;color:#333;outline:none;transition:border-color .15s}
+.field-input:focus{border-color:var(--red)}
+.field-input.field-error{border-color:var(--red2)}
+.field-footnotes{font-size:10px;color:#888;line-height:1.7;margin-top:2px}
+.inline-error{font-size:11px;color:var(--red2);margin-top:3px;display:none}
+.inline-error.show{display:block}
+.step0-footer{display:flex;align-items:center;justify-content:flex-end;border-top:1px solid #eee;padding-top:12px;margin-top:4px}
+.preview-title{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.5px;color:var(--navy)}
+.preview-sub{font-size:12px;color:#888;margin-top:2px;margin-bottom:14px}
+.preview-body{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
+.preview-grid-area{display:flex;flex-direction:column;align-items:center;gap:6px}
+.preview-nav-row{display:flex;align-items:center;gap:10px;width:100%}
+.preview-nav-btn{background:none;border:none;cursor:pointer;font-size:24px;color:var(--red);line-height:1;padding:4px 8px;border-radius:3px;transition:background .12s}
+.preview-nav-btn:hover{background:rgba(178,34,52,.1)}
+#preview-grid-canvas{display:block;border:1.5px solid #ddd;border-radius:3px;image-rendering:auto;flex:1}
+.preview-minimap-col{display:flex;flex-direction:column;align-items:center;gap:4px}
+.preview-mm-label{font-size:11px;color:#555;font-weight:600;text-align:center}
+#preview-mm-canvas{display:block;border:1.5px solid #ddd;border-radius:3px;image-rendering:pixelated;cursor:crosshair}
+.preview-mm-sub{font-size:9px;color:#aaa;text-align:center}
+.preview-pos-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;font-size:12px;color:var(--navy);font-weight:600;flex-wrap:wrap}
+.preview-pos-row span{color:#555;font-weight:400}
+.slot-input{width:56px;border:1.5px solid #ddd;border-radius:3px;padding:4px 6px;font-size:12px;text-align:center;outline:none;font-family:'Inter',sans-serif}
+.slot-input:focus{border-color:var(--red)}
+.slot-taken-msg{display:none;font-size:12px;color:var(--red);font-weight:600;text-align:center;margin-top:4px}
+.slot-taken-msg.show{display:block}
+.btn-goto-empty{display:none;margin:6px auto 0;padding:6px 14px;font-size:11px;background:var(--navy);color:#fff;border:none;border-radius:var(--radius);cursor:pointer;font-family:'Inter',sans-serif}
+.btn-goto-empty.show{display:block}
+.btn-goto-empty:hover{background:var(--navy2)}
+.preview-info-box{border:1.5px solid var(--red);border-radius:4px;padding:8px 12px;font-size:11px;color:#555;text-align:center;margin:8px 0;background:#fff8f8}
+.payment-section{background:#f0f4ff;border:1px solid #c5d0ee;border-radius:6px;padding:16px 18px;margin:12px 0}
+.payment-section h3{font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--navy);margin-bottom:12px}
+.pay-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:6px}
+.pay-row label{font-size:13px;color:#333;font-weight:500}
+.pay-amount{font-family:'Bebas Neue',sans-serif;font-size:22px;color:var(--navy);letter-spacing:1px}
+.pay-required{font-size:11px;color:#fff;background:var(--red);padding:2px 7px;border-radius:10px;font-weight:600}
+.donation-row{margin-top:8px}
+.donation-row label{font-size:13px;color:#555;display:block;margin-bottom:4px}
+.donation-input-wrap{display:flex;align-items:center;border:1.5px solid #ccc;border-radius:var(--radius);overflow:hidden;max-width:140px}
+.donation-input-wrap span{background:#f0f0f0;padding:7px 10px;font-size:14px;color:#555;border-right:1px solid #ccc}
+.donation-input-wrap input{border:none;outline:none;padding:7px 10px;font-size:14px;width:100%;background:#fff}
+.donation-hint{font-size:11px;color:#aaa;margin-top:3px}
+.pay-total-row{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #c5d0ee;padding-top:10px;margin-top:10px}
+.total-label{font-size:13px;color:#555;font-weight:600}
+.total-amt{font-family:'Bebas Neue',sans-serif;font-size:26px;color:var(--red);letter-spacing:1px}
+.stripe-badge{font-size:11px;color:#aaa;margin-top:5px;text-align:right}
+.agreements{background:#f9f9f9;border:1px solid #eee;border-radius:6px;padding:12px 14px;margin-bottom:14px;display:flex;flex-direction:column;gap:10px}
+.pv-cb{display:flex;align-items:flex-start;gap:10px;font-size:13px;color:#333;cursor:pointer;line-height:1.4}
+.pv-cb input[type="checkbox"]{width:15px;height:15px;accent-color:var(--red);margin-top:2px;flex-shrink:0}
+.preview-footer{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #eee;padding-top:12px;margin-top:4px;flex-wrap:wrap;gap:10px}
+.btn-secondary{background:none;border:1.5px solid #ccc;color:#555;padding:9px 18px;font-size:14px;cursor:pointer;border-radius:var(--radius)}
+.btn-secondary:hover{border-color:#999;color:#222}
+.btn-submit-final{background:var(--red);color:#fff;border:none;padding:11px 28px;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;cursor:pointer;border-radius:var(--radius);transition:background .15s,opacity .15s;display:flex;align-items:center;gap:8px}
+.btn-submit-final:disabled{opacity:.3;cursor:not-allowed}
+.btn-submit-final:not(:disabled):hover{background:#8b0000}
+.btn-submit-final .btn-spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.35);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:none}
+.btn-submit-final.loading .btn-spinner{display:block}
+.btn-primary{background:var(--navy);color:#fff;border:none;padding:10px 26px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;cursor:pointer;border-radius:var(--radius);transition:background .15s}
+.btn-primary:hover{background:var(--navy2)}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(16px);background:#1b5e20;border:1px solid #388e3c;color:#c8e6c9;padding:11px 22px;border-radius:6px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);border-top:1px solid rgba(255,255,255,.1);margin-top:4px;flex-shrink:0}
+@media(prefers-reduced-motion:reduce){.spinner,.btn-submit-final .btn-spinner{animation:none}*{transition:none!important}}
+@media(max-width:700px){
+  header{padding:10px 14px}
+  .header-slogan{position:static;transform:none;flex-basis:100%;order:3;text-align:center;white-space:normal;font-size:11px;letter-spacing:.8px;margin-top:4px}
+  #main-layout{flex-direction:column;align-items:center;padding:10px}
+  .step0-body{grid-template-columns:1fr}
+  .preview-body{grid-template-columns:1fr}
+  .preview-minimap-col{display:none}
+
+  /* ── Mobile-only: fit the entire 6000-square grid on screen at load ──────
+     Uses the standard CSS "replaced element" sizing rule (same mechanism
+     browsers use for <img> with both max-width and max-height set): the
+     canvas keeps its native aspect ratio and is scaled down to the largest
+     size that fits BOTH the available width and the available height.
+     This is pure CSS (applies before any JS runs, so there's no flash of
+     an oversized grid), and it only fires under this max-width:700px query
+     — desktop (>700px) is completely unaffected and keeps the original
+     fixed 1200×1125 canvas box. */
+  #viewport-wrap{width:100%}
+  #viewport-container{width:100%;display:flex;justify-content:center}
+  #mosaic-canvas{width:auto;height:auto;max-width:100%;max-height:calc(100vh - 215px)}
+
+  /* Keep the checkout preview grid from overflowing the modal on narrow
+     screens too — same idea, scaled to fit instead of forcing its 500px
+     desktop width. */
+  #preview-grid-canvas{flex:0 1 auto;width:auto;height:auto;max-width:100%}
+}
+.custom-size-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.62);z-index:120;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
+.custom-size-overlay.open{display:flex}
+.custom-size-box{background:#fff;border-radius:8px;border-top:4px solid var(--red);width:92vw;max-width:380px;padding:20px 22px;position:relative;color:var(--text)}
+.custom-size-title{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;color:var(--navy)}
+.custom-size-sub{font-size:11px;color:#888;margin:3px 0 14px}
+#custom-size-grid{display:grid;gap:2px;margin:0 auto 12px;width:240px;height:240px}
+.css-cell{background:#f0f0f0;border:1px solid #ddd;border-radius:2px}
+.css-cell.css-sel{background:#ffd7d7;border-color:var(--red)}
+.css-cell.css-anchor{box-shadow:inset 0 0 0 2px var(--red)}
+.custom-size-readout{text-align:center;font-size:13px;color:var(--navy);font-weight:700;margin-bottom:4px}
+.custom-size-price{text-align:center;font-size:11px;color:#888;margin-bottom:14px}
+.custom-size-footer{display:flex;justify-content:flex-end;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="sq-tooltip" id="sq-tooltip" role="tooltip" style="display: none;"></div>
+<canvas id="eyedropper-loupe" width="80" height="80" aria-hidden="true" style="display: none;"></canvas>
+
+<header>
+  <div class="logo-wrap">
+    <div class="logo-main">6000<span>Squares</span></div>
+  </div>
+  <div class="header-slogan">6000 15×15px squares · $3 per square · Own a piece of present day internet.</div>
+  <div class="header-right">
+    <div class="sq-count-pill" aria-live="polite"><strong id="count-display">0</strong> / 6000 claimed</div>
+    <button class="btn-claim" id="btn-claim">Claim a Square!</button>
+  </div>
+</header>
+
+<div class="rwb" aria-hidden="true"></div>
+
+<div id="main-layout">
+
+  <div id="viewport-wrap">
+    <div id="viewport-container" style="position:relative">
+      <canvas id="mosaic-canvas" role="application" aria-label="6000 Squares grid — 80 columns by 75 rows. Click an empty square to claim it." tabindex="0" width="1200" height="1125"></canvas>
+      <div id="board-loading" role="status" aria-label="Loading board" style="display: none;">
+        <div id="board-loading-inner">
+          <div class="spinner"></div>
+          <p>Loading board…</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-overlay" id="claim-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-id">
+
+  <div class="modal-box">
+    <button class="modal-close" id="claim-close" aria-label="Close modal">✕</button>
+
+    <!-- STEP 0: Draw / Upload -->
+    <div id="step-0" style="display: block;">
+
+      <div class="modal-title" id="modal-title-id">Claim Your 3×2 Space</div>
+      <div class="modal-sub">Draw or upload an image, then click Preview to confirm your spot and pay.</div>
+
+      <!-- Block size picker -->
+      <div class="block-picker-section">
+        <div class="block-picker-label">How many squares?</div>
+        <div class="block-picker-grid" id="block-picker-grid" role="radiogroup" aria-label="Block size"></div>
+      </div>
+
+      <div class="tab-row" role="tablist">
+        <button class="tab-btn" id="tab-draw-btn" role="tab" aria-selected="false" aria-controls="panel-draw">Draw</button>
+        <button class="tab-btn active" id="tab-upload-btn" role="tab" aria-selected="true" aria-controls="panel-upload">Upload Image</button>
+      </div>
+
+      <!-- Draw panel -->
+      <div id="panel-draw" role="tabpanel" aria-labelledby="tab-draw-btn" style="display: none;">
+        <div class="step0-body">
+          <div class="draw-left">
+            <div class="section-heading">Draw on your square</div>
+            <div class="draw-controls-row">
+              <span class="brush-label">Brush Size</span>
+              <div class="brush-row">
+                <input type="range" id="brush-size" min="1" max="80" value="8" aria-label="Brush size">
+                <input type="number" id="brush-size-num" min="1" max="80" value="8" aria-label="Brush size value">
+              </div>
+              <span class="hex-display" id="active-hex" aria-live="polite">#8d66a9</span>
+              <button class="grid-toggle-btn" id="btn-toggle-draw-grid" title="Toggle square grid overlay" aria-pressed="false">⊞ Grid</button>
+            </div>
+            <div class="picker-wrap">
+              <canvas id="sv-canvas" height="130" aria-label="Saturation/brightness picker. Use hex input below for keyboard access." width="260"></canvas>
+              <canvas id="spectrum-bar" height="16" aria-label="Hue spectrum picker." width="260"></canvas>
+              <div id="shade-picker-wrap" class="open">
+                <div class="color-input-row">
+                  <label for="color-text-input">HEX / RGB</label>
+                  <input type="text" id="color-text-input" placeholder="#B22234" aria-label="Color hex or RGB value">
+                </div>
+              </div>
+            </div>
+            <div class="canvas-tools-row">
+              <div class="draw-canvas-wrap">
+                <canvas id="draw-canvas" width="600" height="400" aria-label="Drawing canvas"></canvas>
+                <canvas id="draw-grid-overlay" aria-hidden="true" width="0" height="0" style="width: 0px; height: 0px; left: 0px; top: 0px; display: none;"></canvas>
+                <div id="brush-cursor" aria-hidden="true" style="display: none; width: 80.6015px; height: 80.6015px; left: 526px; top: 833px;"></div>
+              </div>
+              <div class="tool-col" role="toolbar" aria-label="Drawing tools">
+                <canvas id="active-swatch" class="active-swatch-btn" width="32" height="32" title="Current color" aria-label="Current color swatch"></canvas>
+                <div class="tool-divider" aria-hidden="true"></div>
+                <button class="tool-icon-btn active" data-tool="pen" title="Pen" aria-label="Pen tool" aria-pressed="true">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M13.5 1.5L16.5 4.5L6 15H3V12L13.5 1.5Z" stroke="#555" stroke-width="1.4" stroke-linejoin="round"></path><path d="M11.25 3.75L14.25 6.75" stroke="#555" stroke-width="1" stroke-linecap="round"></path></svg>
+                </button>
+                <button class="tool-icon-btn" data-tool="eraser" title="Eraser" aria-label="Eraser tool" aria-pressed="false">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <rect x="3" y="9" width="12" height="6" rx="1" stroke="#555" stroke-width="1.4"></rect>
+                    <path d="M3 12h5" stroke="#555" stroke-width="1.2" stroke-linecap="round"></path>
+                    <path d="M8 9L11 4" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path>
+                    <path d="M12 9L15 4" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path>
+                    <path d="M11 4h4" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path>
+                  </svg>
+                </button>
+                <button class="tool-icon-btn" data-tool="fill" title="Fill" aria-label="Fill tool" aria-pressed="false">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path d="M4 13L9 3L14 10" stroke="#555" stroke-width="1.4" stroke-linejoin="round"></path>
+                    <path d="M4 13L14 10" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path>
+                    <rect x="3" y="12" width="6" height="4" rx="1" stroke="#555" stroke-width="1.2"></rect>
+                    <path d="M14 12c0 1.1-.9 2-2 2" stroke="#555" stroke-width="1.2" stroke-linecap="round"></path>
+                    <path d="M14 10v2" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path>
+                    <circle cx="14" cy="15.5" r="1" data-fill="1" fill="#555" stroke="none"></circle>
+                  </svg>
+                </button>
+                <button class="tool-icon-btn" data-tool="eyedropper" title="Pick Color" aria-label="Eyedropper tool" aria-pressed="false">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                    <path d="M11 3L15 7L7 15L3 11L11 3Z" stroke="#555" stroke-width="1.3" stroke-linejoin="round"></path>
+                    <path d="M9 5L13 9" stroke="#555" stroke-width="1" stroke-linecap="round"></path>
+                    <path d="M3 11L2 16L7 15" stroke="#555" stroke-width="1.3" stroke-linejoin="round"></path>
+                    <circle cx="3.5" cy="15" r="1" data-fill="1" fill="#555" stroke="none"></circle>
+                    <path d="M15 7L16 6C16.6 5.4 16.6 4.4 16 3.8L14.2 2C13.6 1.4 12.6 1.4 12 2L11 3" stroke="#555" stroke-width="1.2" stroke-linejoin="round"></path>
+                  </svg>
+                </button>
+                <div class="tool-divider" aria-hidden="true"></div>
+                <button class="tool-icon-btn" id="btn-clear" title="Clear canvas" aria-label="Clear canvas">
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M3 5h12M7 5V3.5h4V5M6 5l.5 9.5h5L12 5" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path><path d="M7.5 8v4M10.5 8v4" stroke="#555" stroke-width="1.2" stroke-linecap="round"></path></svg>
+                </button>
+              </div>
+            </div>
+            <div class="undo-row">
+              <button id="btn-undo" aria-label="Undo">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 6C2 3.79 3.79 2 6 2C8.21 2 10 3.79 10 6C10 8.21 8.21 10 6 10H4" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path><path d="M2 4L2 6L4 6" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                Undo
+              </button>
+              <button id="btn-redo" aria-label="Redo">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M12 6C12 3.79 10.21 2 8 2C5.79 2 4 3.79 4 6C4 8.21 5.79 10 8 10H10" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path><path d="M12 4L12 6L10 6" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                Redo
+              </button>
+            </div>
+          </div>
+
+          <div class="step0-right">
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. Violations will be removed.
+</div>
+            <div class="rules-footnote">*A user can upload more than once, but each upload must look significantly different.</div>
+            <div>
+              <label class="field-label" for="draw-desc">Image Description*</label>
+              <input type="text" id="draw-desc" class="field-input" maxlength="160" placeholder="e.g. Eagle over the Rockies — Jake, Texas" aria-describedby="draw-desc-err">
+              <div class="inline-error" id="draw-desc-err" role="alert"></div>
+            </div>
+            <div>
+              <label class="field-label" for="draw-url">URL**</label>
+              <input type="text" id="draw-url" class="field-input" maxlength="300" placeholder="https://yourlink.com" aria-describedby="draw-url-err">
+              <div class="inline-error" id="draw-url-err" role="alert"></div>
+            </div>
+            <div class="field-footnotes">*Description: Can be seen when hovering over a square with your mouse on desktop.<br><br>**URL: Will be embedded into your image upon revision. When image is clicked users will be sent to the given link.</div>
+          </div>
+        </div>
+        <div class="step0-footer"><button class="btn-primary" id="btn-to-preview-draw">Preview →</button></div>
+      </div>
+
+      <!-- Upload panel -->
+      <div id="panel-upload" role="tabpanel" aria-labelledby="tab-upload-btn" style="display: block;">
+        <div class="step0-body">
+          <div class="upload-left">
+            <div class="section-heading">Upload an Image</div>
+            <div class="upload-instructions">Move your image to your liking within the square.<br>Only what is shown in the square will appear on the website.<br>Transparent backgrounds will appear as white on the website.</div>
+            <div class="upload-controls" id="upload-ctrl-row" style="display: flex;">
+              <label for="crop-scale">Scale</label>
+              <input type="range" id="crop-scale" min="30" max="400" value="100" aria-label="Image scale">
+              <button id="crop-reset">Reset</button>
+              <button id="crop-remove">Remove</button>
+              <button class="grid-toggle-btn" id="btn-toggle-upload-grid" title="Toggle square grid overlay" aria-pressed="false">⊞ Grid</button>
+            </div>
+            <div id="upload-zone" role="button" tabindex="0" aria-label="Upload image — click or press Enter to browse, or drag and drop here" style="display: none; width: 600px; height: 400px;">
+              <p>Click to browse or drag and drop</p>
+              <strong>JPG, PNG, WEBP · Max 5 MB</strong>
+            </div>
+            <input type="file" id="upload-file" accept="image/jpeg,image/png,image/webp" aria-label="Choose image file">
+            <div class="inline-error" id="upload-file-err" role="alert"></div>
+            <div id="crop-ui" style="display: flex;">
+              <div id="crop-viewport" aria-label="Crop area — drag to pan, slider to zoom" style="width: 600px; height: 400px;">
+                <img id="crop-img" src="" alt="Uploaded image for cropping" style="width: 0px; height: 0px; left: 0px; top: 0px;">
+                <canvas id="upload-grid-overlay" aria-hidden="true" width="596" height="396" style="width: 596px; height: 396px; display: none;"></canvas>
+              </div>
+              <div class="crop-hint">Drag to pan · Slider to zoom · Only visible area saves</div>
+            </div>
+            <div class="upload-undo-row">
+              <button id="crop-undo" aria-label="Undo crop">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 6C2 3.79 3.79 2 6 2C8.21 2 10 3.79 10 6C10 8.21 8.21 10 6 10H4" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path><path d="M2 4L2 6L4 6" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                Undo
+              </button>
+              <button id="crop-redo" aria-label="Redo crop">
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M12 6C12 3.79 10.21 2 8 2C5.79 2 4 3.79 4 6C4 8.21 5.79 10 8 10H10" stroke="#555" stroke-width="1.4" stroke-linecap="round"></path><path d="M12 4L12 6L10 6" stroke="#555" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                Redo
+              </button>
+            </div>
+          </div>
+
+          <div class="step0-right">
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. Violations will be removed.</div>
+            <div class="rules-footnote">A user can upload more than once, but each upload must look significantly different.</div>
+            <div>
+              <label class="field-label" for="upload-desc">Image Description*</label>
+              <input type="text" id="upload-desc" class="field-input" maxlength="160" placeholder="e.g. Sunset at the Grand Canyon — Maria, Arizona" aria-describedby="upload-desc-err">
+              <div class="inline-error" id="upload-desc-err" role="alert"></div>
+            </div>
+            <div>
+              <label class="field-label" for="upload-url">URL**</label>
+              <input type="text" id="upload-url" class="field-input" maxlength="300" placeholder="https://yourlink.com" aria-describedby="upload-url-err">
+              <div class="inline-error" id="upload-url-err" role="alert"></div>
+            </div>
+            <div class="field-footnotes">*Description: Can be seen when hovering over a square with your mouse on desktop.<br><br>**URL: Will be embedded into your image upon revision. When image is clicked users will be sent to the given link.</div>
+          </div>
+        </div>
+        <div class="step0-footer"><button class="btn-primary" id="btn-to-preview-upload">Preview →</button></div>
+      </div>
+
+    </div>
+
+    <!-- STEP 1: Preview & Payment -->
+    <div id="step-1" style="display: none;">
+
+      <div class="preview-title" id="preview-title-id">Preview Your Square</div>
+      <div class="preview-sub">This is where your square will be and what it will look like on the board.</div>
+
+      <div class="preview-body">
+        <div class="preview-grid-area">
+          <button class="preview-nav-btn" id="prev-up" aria-label="Scroll preview up">▲</button>
+          <div class="preview-nav-row">
+            <button class="preview-nav-btn" id="prev-left" aria-label="Scroll preview left">◀</button>
+            <canvas id="preview-grid-canvas" width="500" height="300" aria-label="Preview of your square in context. Click an empty square to select it."></canvas>
+            <button class="preview-nav-btn" id="prev-right" aria-label="Scroll preview right">▶</button>
+          </div>
+          <button class="preview-nav-btn" id="prev-down" aria-label="Scroll preview down">▼</button>
+        </div>
+        <div class="preview-minimap-col">
+          <div class="preview-mm-label">Your Position:</div>
+          <canvas id="preview-mm-canvas" width="160" height="120" aria-label="Position on the full grid. Drag the red dot to reposition."></canvas>
+          <div class="preview-mm-sub">Drag red dot to reposition<br>(80×75 grid)</div>
+        </div>
+      </div>
+
+      <div class="preview-pos-row">
+        Your square: <strong id="sq-position-label">slots #1065–#1076 — top-left at row 14, col 25</strong>
+        <span>Click empty squares or type a number:</span>
+        <input type="number" id="slot-number-input" class="slot-input" min="1" max="6000" aria-label="Square number">
+      </div>
+      <div class="slot-taken-msg" id="slot-taken-msg" role="alert">Part of this block is taken — try a different position.</div>
+      <button class="btn-goto-empty" id="btn-goto-empty">Go to earliest unclaimed square</button>
+
+      <div class="preview-info-box" id="preview-info-box">Your block covers <strong>45×30px</strong> on the mosaic (6 squares). Image will fill the block shape.</div>
+
+      <div class="payment-section">
+        <h3>Payment</h3>
+        <div class="pay-row">
+          <label id="pay-row-label">Claim 6 squares (3×2)</label>
+          <div style="display:flex;align-items:center;gap:8px"><span class="pay-required">Required</span><span class="pay-amount" id="pay-amount">$18.00</span></div>
+        </div>
+        <div class="donation-row">
+          <label for="donation-input">Support the project <span style="color:#bbb;font-size:11px">(optional)</span></label>
+          <div class="donation-input-wrap">
+            <span aria-hidden="true">$</span>
+            <input type="number" id="donation-input" min="0" max="10000" step="1" placeholder="0" aria-label="Optional donation in dollars">
+          </div>
+          <div class="donation-hint">Any extra keeps 6000 Squares running.</div>
+        </div>
+        <div class="pay-total-row">
+          <span class="total-label">Total charged</span>
+          <span class="total-amt" id="total-display" aria-live="polite">$18.00</span>
+        </div>
+        <div class="stripe-badge">Powered by <strong style="color:#635BFF">Stripe</strong></div>
+      </div>
+
+      <div class="inline-error" id="checkout-error" role="alert" style="font-size:13px;margin-bottom:10px"></div>
+
+      <div class="agreements">
+        <label class="pv-cb"><input type="checkbox" id="pv-cb1"> I understand this image will be visible to the public and cannot be edited once submitted.</label>
+        <label class="pv-cb"><input type="checkbox" id="pv-cb2"> I understand that all sales are final and refunds are not guaranteed.</label>
+      </div>
+
+      <div class="preview-footer">
+        <button class="btn-secondary" id="btn-step1-back">Back to Edit</button>
+        <button class="btn-submit-final" id="submit-final-btn" disabled="" aria-disabled="true">
+          <span class="btn-spinner" aria-hidden="true"></span>
+          <span id="submit-btn-label">Pay and Submit</span>
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="custom-size-overlay" id="custom-size-overlay" role="dialog" aria-modal="true" aria-labelledby="custom-size-title-id">
+  <div class="custom-size-box">
+    <button class="modal-close" id="custom-size-close" aria-label="Close custom size picker">✕</button>
+    <div class="custom-size-title" id="custom-size-title-id">Custom Space Size</div>
+    <div class="custom-size-sub">Drag across the grid to pick a rectangle, up to 6×6 squares.</div>
+    <div id="custom-size-grid" role="application" aria-label="6 by 6 grid — drag to select a rectangle of squares"></div>
+    <div class="custom-size-readout" id="custom-size-readout">3 × 2 (6 squares)</div>
+    <div class="custom-size-price" id="custom-size-price">$18.00</div>
+    <div class="custom-size-footer">
+      <button class="btn-secondary" id="custom-size-cancel">Cancel</button>
+      <button class="btn-primary" id="custom-size-confirm">Use This Size</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+<footer>© 2025 6000Squares.com — Every square tells a story.</footer>
+
+<script>(function(){'use strict';
+
+// ── Security model ───────────────────────────────────────────────────────
+// Everything in this file — price math, block-shape validation, overlap
+// checks, "no space left" greying-out — exists purely for UX: instant
+// feedback, no round-trip needed to tell someone a square is taken. NONE of
+// it is a trust boundary. A browser's JS/DOM/localStorage/network requests
+// can always be tampered with by whoever controls that browser, so this
+// client must never be the thing that decides a charge is valid.
+// The actual source of truth is the server (worker.js):
+//   • It re-derives price server-side as cols*rows*PRICE_PER_SQUARE from a
+//     server-side copy of the same shape/size rules — it never reads a
+//     price, block_cols, block_rows, or square_count field sent by the
+//     client as authoritative.
+//   • It atomically reserves/claims every slot in a block (not just the
+//     anchor) inside a single transaction, so two people can never end up
+//     owning overlapping squares no matter how their requests interleave.
+//   • It re-validates that every slot in the requested block is still free
+//     at the moment payment is confirmed (via the Stripe webhook), not just
+//     at the moment checkout was opened.
+//   • It ignores/derives the count/board state itself rather than trusting
+//     any client-reported number.
+// If you're reviewing this file for "is this exploitable" — the answer for
+// pricing/ownership integrity depends entirely on worker.js enforcing the
+// above, not on this file, because this file cannot be trusted.
+// ──────────────────────────────────────────────────────────────────────────
+
+const COLS=80,ROWS=75,TOTAL=COLS*ROWS,SQ=15;
+const GRID_W=COLS*SQ,GRID_H=ROWS*SQ;
+const MM_W=200,MM_H=160;
+const MAX_UNDO=20;
+const MAX_IMAGE_BYTES=5*1024*1024;
+const API_BASE='';
+const PREV_COLS=5,PREV_ROWS=3,CELL_PX=100;
+
+const BLOCK_SHAPES=[
+  {cols:1,rows:1,label:'1 square'},
+  {cols:2,rows:1,label:'2 wide'},
+  {cols:1,rows:2,label:'2 tall'},
+  {cols:2,rows:2,label:'4 squares'},
+  {cols:3,rows:2,label:'6 wide'},
+  {cols:2,rows:3,label:'6 tall'},
+  {cols:3,rows:3,label:'9 squares'},
+  {cols:4,rows:3,label:'12 wide'},
+  {cols:3,rows:4,label:'12 tall'},
+  {cols:4,rows:4,label:'16 squares'},
+];
+const PRICE_PER_SQUARE=3;
+// Custom-size picker is bounded to a 6x6 max grid — this bound is enforced
+// both in the UI (a fixed 6x6 picker grid) and again in isValidBlockShape()
+// below, so a tampered cols/rows value sent from elsewhere in the page can
+// never produce a block the server-equivalent validation would reject.
+const CUSTOM_MAX=6;
+
+// Single source of truth for "is this a purchasable block shape". A shape is
+// valid if it's one of the curated BLOCK_SHAPES OR a custom rectangle within
+// 1..CUSTOM_MAX on each side. Price is ALWAYS recomputed as cols*rows*PRICE_PER_SQUARE
+// from these validated integers — never trusted from any other source.
+function isValidBlockShape(bc,br){
+  bc=Math.floor(bc);br=Math.floor(br);
+  if(!Number.isFinite(bc)||!Number.isFinite(br))return false;
+  if(BLOCK_SHAPES.some(s=>s.cols===bc&&s.rows===br))return true;
+  return bc>=1&&bc<=CUSTOM_MAX&&br>=1&&br<=CUSTOM_MAX;
+}
+
+const $=id=>document.getElementById(id);
+const mosaicCanvas=$('mosaic-canvas'),mosaicCtx=mosaicCanvas.getContext('2d');
+const vpContainer=$('viewport-container');
+const boardLoadingEl=$('board-loading');
+const countDisplay=$('count-display'),tooltipEl=$('sq-tooltip');
+const drawCanvas=$('draw-canvas'),drawCtx=drawCanvas.getContext('2d',{willReadFrequently:true});
+const brushCursor=$('brush-cursor');
+const drawGridOverlay=$('draw-grid-overlay');
+const uploadGridOverlay=$('upload-grid-overlay');
+const loupeCanvas=$('eyedropper-loupe'),loupeCtx=loupeCanvas.getContext('2d');
+const brushSizeEl=$('brush-size'),brushSizeNum=$('brush-size-num');
+const activeSwatch=$('active-swatch'),swatchCtx=activeSwatch.getContext('2d');
+const activeHexEl=$('active-hex'),svCanvas=$('sv-canvas'),svCtx=svCanvas.getContext('2d');
+const spectrumBar=$('spectrum-bar'),spCtx=spectrumBar.getContext('2d');
+const colorTextInput=$('color-text-input');
+const drawDescEl=$('draw-desc'),uploadDescEl=$('upload-desc');
+const uploadZone=$('upload-zone'),uploadFileEl=$('upload-file');
+const cropUI=$('crop-ui'),cropViewport=$('crop-viewport'),cropImg=$('crop-img');
+const cropScale=$('crop-scale'),uploadCtrlRow=$('upload-ctrl-row');
+const previewGridCanvas=$('preview-grid-canvas'),previewGridCtx=previewGridCanvas.getContext('2d');
+const previewMMCanvas=$('preview-mm-canvas'),previewMMCtx=previewMMCanvas.getContext('2d');
+const posLabel=$('sq-position-label'),slotNumberInput=$('slot-number-input');
+const slotTakenMsg=$('slot-taken-msg'),btnGotoEmpty=$('btn-goto-empty');
+const submitBtn=$('submit-final-btn'),submitBtnLabel=$('submit-btn-label');
+const cb1=$('pv-cb1'),cb2=$('pv-cb2');
+const donationInput=$('donation-input'),totalDisplay=$('total-display');
+const toast=$('toast'),claimOverlay=$('claim-overlay');
+const checkoutErrorEl=$('checkout-error');
+const customSizeOverlay=$('custom-size-overlay'),customSizeGrid=$('custom-size-grid');
+const customSizeReadout=$('custom-size-readout'),customSizePrice=$('custom-size-price');
+
+const squares=new Array(TOTAL).fill(null);
+let activeTab='draw',drawTool='pen',isDrawing=false,chosenSlot=null,currentStep=0;
+let blockCols=1,blockRows=1;
+let chosenBlock=Object.freeze({cols:1,rows:1,count:1,price:3,slots:[]});
+let showDrawGrid=false,showUploadGrid=false;
+let curHue=0,curSat=0.8,curVal=0.7,curHex='#B22234';
+const undoStack=[],redoStack=[];
+let imgOffX=0,imgOffY=0,imgNatW=0,imgNatH=0,vpPx=0;
+const cropUndoStack=[],cropRedoStack=[];
+let currentImageData=null,currentPreviewImageData=null,currentDesc='',currentUrl='';
+let previewViewCol=0,previewViewRow=0,previewSelected=-1;
+let pmDotDrag=false;
+let tooltipSlot=-1,saveTimer=null;
+let lx=0,ly=0;
+let drawRectCache=null;
+function refreshDrawRect(){drawRectCache=drawCanvas.getBoundingClientRect();}
+let currentReservationToken=null;
+let isUsingRealBackend=false;
+
+// ── Live conflict polling ──────────────────────────────────────────────────
+// While the claim modal is open, periodically check the board for newly
+// claimed squares. If someone else finishes checkout on a square that
+// overlaps the user's current selection, the preview updates live and the
+// user is told to pick another spot — no countdown, no forced reselect timer.
+let claimPollId=null;
+// ────────────────────────────────────────────────────────────────────────────
+
+const clamp=(v,lo,hi)=>v<lo?lo:v>hi?hi:v;
+
+// Converts a viewport (clientX/clientY) point into a canvas's own internal
+// pixel-buffer coordinate space. This is required whenever a canvas's CSS
+// display size can differ from its drawing-buffer resolution (e.g. the
+// mosaic grid is scaled down to fit the screen on mobile, see the
+// max-width:700px CSS above) — without this conversion, click/tap
+// coordinates would be off by the scale factor. On desktop, where the
+// canvas is always shown at its native resolution, sx/sy simply equal 1
+// and this is a no-op, so desktop behavior is unchanged.
+function canvasClientToLocal(canvas,clientX,clientY){
+  const rect=canvas.getBoundingClientRect();
+  const sx=canvas.width/rect.width,sy=canvas.height/rect.height;
+  return{x:(clientX-rect.left)*sx,y:(clientY-rect.top)*sy,rect,sx,sy};
+}
+
+function showToast(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>toast.classList.remove('show'),4000);}
+function showInlineError(id,msg){const el=$(id);if(!el)return;el.textContent=msg;msg?el.classList.add('show'):el.classList.remove('show');}
+function clearInlineErrors(){document.querySelectorAll('.inline-error').forEach(el=>{el.textContent='';el.classList.remove('show');});}
+function slotRC(i){return{row:(i/COLS)|0,col:i%COLS};}
+function rcSlot(r,c){return r*COLS+c;}
+function claimedCount(){let c=0;for(let i=0;i<TOTAL;i++)if(squares[i])c++;return c;}
+function firstEmpty(){for(let i=0;i<TOTAL;i++)if(!squares[i])return i;return -1;}
+function validateUrl(str){if(!str||!str.trim())return null;try{const u=new URL(str.trim());if(u.protocol!=='https:'&&u.protocol!=='http:')return 'URL must start with https:// or http://';return null;}catch(_){return 'Please enter a valid URL (e.g. https://example.com)';}}
+
+function loadState(){try{const s=localStorage.getItem('sixthousandsquares_v9');if(!s)return;const arr=JSON.parse(s);for(const e of arr)if(e.index>=0&&e.index<TOTAL)squares[e.index]=e.data;}catch(_){}}
+function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{const c=[];for(let i=0;i<TOTAL;i++)if(squares[i])c.push({index:i,data:{imageData:squares[i].imageData,desc:squares[i].desc,url:squares[i].url,timestamp:squares[i].timestamp}});localStorage.setItem('sixthousandsquares_v9',JSON.stringify(c));}catch(_){}},500);}
+
+function hsvToHex(h,s,v){const c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c;let r,g,b;if(h<60){r=c;g=x;b=0;}else if(h<120){r=x;g=c;b=0;}else if(h<180){r=0;g=c;b=x;}else if(h<240){r=0;g=x;b=c;}else if(h<300){r=x;g=0;b=c;}else{r=c;g=0;b=x;}const H=n=>Math.round((n+m)*255).toString(16).padStart(2,'0');return'#'+H(r)+H(g)+H(b);}
+function hexToHSV(hex){let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slice(3,5),16)/255,b=parseInt(hex.slice(5,7),16)/255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;if(d){if(mx===r)h=((g-b)/d)%6;else if(mx===g)h=(b-r)/d+2;else h=(r-g)/d+4;h=Math.round(h*60);if(h<0)h+=360;}return{h,s:mx?d/mx:0,v:mx};}
+function rgbToHex(r,g,b){return'#'+r.toString(16).padStart(2,'0')+g.toString(16).padStart(2,'0')+b.toString(16).padStart(2,'0');}
+function parseColorInput(str){str=str.trim();if(/^#[0-9a-f]{6}$/i.test(str))return str.toLowerCase();if(/^#[0-9a-f]{3}$/i.test(str))return('#'+str[1]+str[1]+str[2]+str[2]+str[3]+str[3]).toLowerCase();const rgb=str.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);if(rgb)return rgbToHex(+rgb[1],+rgb[2],+rgb[3]);return null;}
+
+function applyHex(hex){curHex=hex;const hsv=hexToHSV(hex);curHue=hsv.h;curSat=hsv.s;curVal=hsv.v;swatchCtx.fillStyle=hex;swatchCtx.fillRect(0,0,32,32);activeHexEl.textContent=hex;colorTextInput.value=hex;drawSVCanvas();drawSpectrumBar();}
+function drawSVCanvas(){const w=svCanvas.width=svCanvas.offsetWidth||260,h=svCanvas.height;const hueHex=hsvToHex(curHue,1,1);const g1=svCtx.createLinearGradient(0,0,w,0);g1.addColorStop(0,'#fff');g1.addColorStop(1,hueHex);svCtx.fillStyle=g1;svCtx.fillRect(0,0,w,h);const g2=svCtx.createLinearGradient(0,0,0,h);g2.addColorStop(0,'rgba(0,0,0,0)');g2.addColorStop(1,'#000');svCtx.fillStyle=g2;svCtx.fillRect(0,0,w,h);const mx=curSat*w,my=(1-curVal)*h;svCtx.beginPath();svCtx.arc(mx,my,5,0,6.283);svCtx.strokeStyle='#fff';svCtx.lineWidth=2;svCtx.stroke();svCtx.beginPath();svCtx.arc(mx,my,5,0,6.283);svCtx.strokeStyle='rgba(0,0,0,.4)';svCtx.lineWidth=1;svCtx.stroke();}
+function drawSpectrumBar(){const w=spectrumBar.width=spectrumBar.offsetWidth||260,h=spectrumBar.height;const grad=spCtx.createLinearGradient(0,0,w,0);['#f00','#ff0','#0f0','#0ff','#00f','#f0f','#f00'].forEach((c,i)=>grad.addColorStop(i/6,c));spCtx.fillStyle=grad;spCtx.fillRect(0,0,w,h);const mx=(curHue/360)*w;spCtx.strokeStyle='#fff';spCtx.lineWidth=2;spCtx.beginPath();spCtx.moveTo(mx,0);spCtx.lineTo(mx,h);spCtx.stroke();}
+function svPick(e){const r=svCanvas.getBoundingClientRect();curSat=clamp((e.clientX-r.left)/r.width,0,1);curVal=1-clamp((e.clientY-r.top)/r.height,0,1);applyHex(hsvToHex(curHue,curSat,curVal));}
+function specPickX(clientX){const r=spectrumBar.getBoundingClientRect();curHue=Math.round(360*clamp((clientX-r.left)/r.width,0,1));applyHex(hsvToHex(curHue,curSat,curVal));}
+
+function getBlockSlots(anchorSlot,bc,br){
+  const{row:ar,col:ac}=slotRC(anchorSlot);
+  const slots=[];
+  for(let r=0;r<br;r++)for(let c=0;c<bc;c++){
+    const nr=ar+r,nc=ac+c;
+    if(nr<0||nr>=ROWS||nc<0||nc>=COLS)return null;
+    slots.push(rcSlot(nr,nc));
+  }
+  return slots;
+}
+
+function blockPrice(bc,br){return bc*br*PRICE_PER_SQUARE;}
+
+// Returns true if there exists at least one anchor position on the grid where
+// this shape could currently be placed without overlapping a claimed square.
+// Used to grey out resolutions that can no longer fit anywhere on the board.
+function shapeHasAvailableSpot(bc,br){
+  if(bc>COLS||br>ROWS)return false;
+  for(let r=0;r<=ROWS-br;r++){
+    for(let c=0;c<=COLS-bc;c++){
+      let ok=true;
+      for(let rr=0;rr<br&&ok;rr++){
+        for(let cc=0;cc<bc;cc++){
+          if(squares[rcSlot(r+rr,c+cc)]){ok=false;break;}
+        }
+      }
+      if(ok)return true;
+    }
+  }
+  return false;
+}
+
+function commitBlock(anchorSlot,bc,br){
+  if(!isValidBlockShape(bc,br))return false;
+  if(anchorSlot===null||anchorSlot<0||anchorSlot>=TOTAL)return false;
+  const slots=getBlockSlots(anchorSlot,bc,br);
+  if(!slots)return false;
+  const takenSlot=slots.find(s=>squares[s]);
+  if(takenSlot!==undefined)return false;
+  const count=bc*br;
+  const price=count*PRICE_PER_SQUARE;
+  chosenBlock=Object.freeze({cols:bc,rows:br,count,price,slots:Object.freeze([...slots]),anchor:anchorSlot});
+  return true;
+}
+
+function isCustomShape(bc,br){return !BLOCK_SHAPES.some(s=>s.cols===bc&&s.rows===br);}
+
+function renderBlockPicker(){
+  const grid=$('block-picker-grid');
+  grid.innerHTML='';
+  BLOCK_SHAPES.forEach((shape)=>{
+    const count=shape.cols*shape.rows;
+    const price=blockPrice(shape.cols,shape.rows);
+    const available=shapeHasAvailableSpot(shape.cols,shape.rows);
+    const isSelected=shape.cols===blockCols&&shape.rows===blockRows;
+    const btn=document.createElement('button');
+    btn.className='block-option'+(isSelected?' selected':'')+(available?'':' disabled');
+    btn.setAttribute('role','radio');
+    btn.setAttribute('aria-checked',String(isSelected));
+    btn.setAttribute('aria-disabled',String(!available));
+    btn.setAttribute('aria-label',`${shape.label} — $${price}`+(available?'':' — sold out, no space available'));
+    if(!available)btn.disabled=true;
+    const cellSize=9;
+    const previewDiv=document.createElement('div');
+    previewDiv.className='block-shape-preview';
+    previewDiv.style.gridTemplateColumns=`repeat(${shape.cols},${cellSize}px)`;
+    previewDiv.style.gridTemplateRows=`repeat(${shape.rows},${cellSize}px)`;
+    for(let i=0;i<count;i++){const cell=document.createElement('div');cell.className='bsp-cell';cell.style.width=cellSize+'px';cell.style.height=cellSize+'px';previewDiv.appendChild(cell);}
+    const labelDiv=document.createElement('div');labelDiv.className='block-option-label';labelDiv.textContent=shape.label;
+    const priceDiv=document.createElement('div');priceDiv.className='block-option-price';priceDiv.textContent=available?('$'+price):'';
+    if(!available){priceDiv.classList.add('block-option-full');priceDiv.textContent='No space left';}
+    btn.appendChild(previewDiv);btn.appendChild(labelDiv);btn.appendChild(priceDiv);
+    if(available){
+      btn.addEventListener('click',()=>{
+        blockCols=shape.cols;blockRows=shape.rows;
+        if(chosenSlot!==null&&!commitBlock(chosenSlot,blockCols,blockRows)){
+          // current anchor no longer fits this shape — snap to nearest available anchor
+          for(let i=0;i<TOTAL;i++){if(commitBlock(i,blockCols,blockRows)){chosenSlot=i;break;}}
+        }
+        renderBlockPicker();resizeDrawCanvas();updateModalTitle();
+      });
+    }
+    grid.appendChild(btn);
+  });
+
+  // Custom size tile — always present, opens the 6x6 drag picker.
+  const isCustomSelected=isCustomShape(blockCols,blockRows);
+  const customAny=(()=>{for(let bc=1;bc<=CUSTOM_MAX;bc++)for(let br=1;br<=CUSTOM_MAX;br++){if(isCustomShape(bc,br)&&shapeHasAvailableSpot(bc,br))return true;}return false;})();
+  const cbtn=document.createElement('button');
+  cbtn.type='button';
+  cbtn.className='block-option'+(isCustomSelected?' selected':'')+(customAny?'':' disabled');
+  cbtn.setAttribute('role','radio');
+  cbtn.setAttribute('aria-checked',String(isCustomSelected));
+  cbtn.setAttribute('aria-disabled',String(!customAny));
+  cbtn.setAttribute('aria-label','Custom size — pick any rectangle up to 6 by 6'+(customAny?'':' — sold out'));
+  if(!customAny)cbtn.disabled=true;
+  const cPreview=document.createElement('div');
+  cPreview.style.cssText='width:36px;height:36px;display:flex;align-items:center;justify-content:center;border:1.5px dashed #aaa;border-radius:3px;color:#888;font-size:18px;font-weight:700;';
+  cPreview.textContent='＋';
+  const cLabel=document.createElement('div');cLabel.className='block-option-label';
+  cLabel.textContent=isCustomSelected?`Custom ${blockCols}×${blockRows}`:'Custom size';
+  const cPrice=document.createElement('div');cPrice.className='block-option-price';
+  cPrice.textContent=customAny?(isCustomSelected?('$'+blockPrice(blockCols,blockRows)):'Pick →'):'No space left';
+  if(!customAny)cPrice.classList.add('block-option-full');
+  cbtn.appendChild(cPreview);cbtn.appendChild(cLabel);cbtn.appendChild(cPrice);
+  if(customAny)cbtn.addEventListener('click',openCustomSizePicker);
+  grid.appendChild(cbtn);
+}
+
+// ── Custom size picker (6x6 drag-select) ────────────────────────────────────
+// The picker itself is rendered as a fixed CUSTOM_MAX x CUSTOM_MAX grid of
+// cells in the DOM — there is no free-text or numeric input for cols/rows.
+// The user can only ever select a sub-rectangle of that fixed grid, so the
+// resulting cols/rows are mechanically bounded to [1, CUSTOM_MAX]. The value
+// is then re-validated by isValidBlockShape() and re-priced from scratch by
+// commitBlock(), exactly like every other shape — there is no separate code
+// path that trusts a client-supplied price or dimension.
+let csAnchorR=0,csAnchorC=0,csCurR=2,csCurC=1,csDragging=false;
+function customSizeSelection(){
+  const r0=Math.min(csAnchorR,csCurR),r1=Math.max(csAnchorR,csCurR);
+  const c0=Math.min(csAnchorC,csCurC),c1=Math.max(csAnchorC,csCurC);
+  return{r0,r1,c0,c1,rows:(r1-r0+1),cols:(c1-c0+1)};
+}
+function renderCustomSizeGrid(){
+  customSizeGrid.innerHTML='';
+  customSizeGrid.style.gridTemplateColumns=`repeat(${CUSTOM_MAX},1fr)`;
+  customSizeGrid.style.gridTemplateRows=`repeat(${CUSTOM_MAX},1fr)`;
+  const sel=customSizeSelection();
+  for(let r=0;r<CUSTOM_MAX;r++){
+    for(let c=0;c<CUSTOM_MAX;c++){
+      const cell=document.createElement('div');
+      const inSel=r>=sel.r0&&r<=sel.r1&&c>=sel.c0&&c<=sel.c1;
+      cell.className='css-cell'+(inSel?' css-sel':'')+(r===csAnchorR&&c===csAnchorC?' css-anchor':'');
+      cell.dataset.r=r;cell.dataset.c=c;
+      customSizeGrid.appendChild(cell);
+    }
+  }
+  const count=sel.cols*sel.rows;
+  customSizeReadout.textContent=`${sel.cols} × ${sel.rows} (${count} square${count>1?'s':''})`;
+  customSizePrice.textContent='$'+(count*PRICE_PER_SQUARE).toFixed(2);
+}
+function customCellFromPoint(clientX,clientY){
+  const rect=customSizeGrid.getBoundingClientRect();
+  const cw=rect.width/CUSTOM_MAX,ch=rect.height/CUSTOM_MAX;
+  const c=clamp(Math.floor((clientX-rect.left)/cw),0,CUSTOM_MAX-1);
+  const r=clamp(Math.floor((clientY-rect.top)/ch),0,CUSTOM_MAX-1);
+  return{r,c};
+}
+function openCustomSizePicker(){
+  // seed the picker from the current selection if it's already a valid
+  // custom-range size, otherwise default to a small 2x1
+  if(isCustomShape(blockCols,blockRows)&&blockCols<=CUSTOM_MAX&&blockRows<=CUSTOM_MAX){
+    csAnchorR=0;csAnchorC=0;csCurR=blockRows-1;csCurC=blockCols-1;
+  }else{csAnchorR=0;csAnchorC=0;csCurR=0;csCurC=1;}
+  renderCustomSizeGrid();
+  customSizeOverlay.classList.add('open');
+  requestAnimationFrame(()=>$('custom-size-cancel').focus());
+}
+function closeCustomSizePicker(){customSizeOverlay.classList.remove('open');}
+function confirmCustomSize(){
+  const sel=customSizeSelection();
+  const bc=clamp(Math.floor(sel.cols),1,CUSTOM_MAX);
+  const br=clamp(Math.floor(sel.rows),1,CUSTOM_MAX);
+  if(!isValidBlockShape(bc,br)){showToast('Invalid size — please try again.');return;}
+  if(!shapeHasAvailableSpot(bc,br)){showToast('No space left for that size on the board.');closeCustomSizePicker();return;}
+  blockCols=bc;blockRows=br;
+  if(chosenSlot===null||!commitBlock(chosenSlot,blockCols,blockRows)){
+    let placed=false;
+    for(let i=0;i<TOTAL;i++){if(commitBlock(i,blockCols,blockRows)){chosenSlot=i;placed=true;break;}}
+    if(!placed){showToast('No space left for that size on the board.');closeCustomSizePicker();return;}
+  }
+  closeCustomSizePicker();
+  renderBlockPicker();resizeDrawCanvas();updateModalTitle();
+}
+function initCustomSizePickerEvents(){
+  customSizeGrid.addEventListener('mousedown',e=>{
+    const cell=e.target.closest('.css-cell');if(!cell)return;
+    csDragging=true;csAnchorR=+cell.dataset.r;csAnchorC=+cell.dataset.c;csCurR=csAnchorR;csCurC=csAnchorC;
+    renderCustomSizeGrid();e.preventDefault();
+  });
+  customSizeGrid.addEventListener('mousemove',e=>{
+    if(!csDragging)return;
+    const{r,c}=customCellFromPoint(e.clientX,e.clientY);
+    csCurR=r;csCurC=c;renderCustomSizeGrid();
+  });
+  document.addEventListener('mouseup',()=>{csDragging=false;});
+  customSizeGrid.addEventListener('touchstart',e=>{
+    const t=e.touches[0];const{r,c}=customCellFromPoint(t.clientX,t.clientY);
+    csDragging=true;csAnchorR=r;csAnchorC=c;csCurR=r;csCurC=c;renderCustomSizeGrid();e.preventDefault();
+  },{passive:false});
+  customSizeGrid.addEventListener('touchmove',e=>{
+    if(!csDragging)return;const t=e.touches[0];const{r,c}=customCellFromPoint(t.clientX,t.clientY);
+    csCurR=r;csCurC=c;renderCustomSizeGrid();e.preventDefault();
+  },{passive:false});
+  customSizeGrid.addEventListener('touchend',()=>{csDragging=false;});
+  $('custom-size-confirm').addEventListener('click',confirmCustomSize);
+  $('custom-size-cancel').addEventListener('click',closeCustomSizePicker);
+  $('custom-size-close').addEventListener('click',closeCustomSizePicker);
+  customSizeOverlay.addEventListener('mousedown',e=>{if(e.target===customSizeOverlay)closeCustomSizePicker();});
+  customSizeOverlay.addEventListener('keydown',e=>{if(e.key==='Escape')closeCustomSizePicker();});
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+// ── Live conflict polling ────────────────────────────────────────────────────
+// Polls the board while the claim modal is open. Any square claimed by
+// someone else is reflected on the mosaic immediately, and if it overlaps
+// the user's current selection, the preview/grid updates live and the user
+// is told to pick a different spot.
+function startClaimPolling(){
+  stopClaimPolling();
+  claimPollId=setInterval(pollForConflicts,4000);
+}
+function stopClaimPolling(){
+  if(claimPollId){clearInterval(claimPollId);claimPollId=null;}
+}
+async function pollForConflicts(){
+  if(!isUsingRealBackend)return;
+  try{
+    const res=await fetch(`${API_BASE}/api/board`);
+    if(!res.ok)return;
+    const data=await res.json();
+    const claimList=data.claims||[];
+    if(countDisplay)countDisplay.textContent=data.count||claimedCount();
+    let conflict=false;
+    for(const claim of claimList){
+      const i=claim.slot;
+      if(squares[i])continue; // already known
+      squares[i]={imageData:null,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now()};
+      renderSquareToCanvas(i);
+      fetch(`${API_BASE}/api/image/${i}`).then(r=>r.ok?r.blob():null).then(blob=>{
+        if(!blob||!squares[i])return;
+        const fr=new FileReader();
+        fr.onload=()=>{if(squares[i]){squares[i].imageData=fr.result;renderSquareToCanvas(i);if(currentStep===1)drawPreviewGrid();}};
+        fr.readAsDataURL(blob);
+      }).catch(()=>{});
+      if(chosenBlock&&chosenBlock.slots&&chosenBlock.slots.includes(i))conflict=true;
+    }
+    if(conflict)handleLiveConflict();
+    else if(currentStep===1)drawPreviewGrid();
+  }catch(_){}
+}
+function handleLiveConflict(){
+  const count=chosenBlock?chosenBlock.count:1;
+  const msg=count===1?'Someone just claimed this square — please pick another.':'Someone just claimed part of your selected squares — please pick another spot.';
+  if(currentStep===1){
+    drawPreviewGrid();updatePrevMinimap();
+    slotTakenMsg.textContent=msg;
+    slotTakenMsg.classList.add('show');btnGotoEmpty.classList.add('show');
+    submitBtn.disabled=true;submitBtn.setAttribute('aria-disabled','true');
+  }else{
+    showInlineError(activeTab==='draw'?'draw-desc-err':'upload-file-err',msg);
+    renderBlockPicker();
+  }
+}
+// ────────────────────────────────────────────────────────────────────────────
+
+// ── Grid overlay ────────────────────────────────────────────────────────────
+function drawGridOverlayOnCanvas(){
+  const r=drawCanvas.getBoundingClientRect();
+  const dispW=r.width,dispH=r.height;
+  drawGridOverlay.width=Math.round(dispW);drawGridOverlay.height=Math.round(dispH);
+  drawGridOverlay.style.width=dispW+'px';drawGridOverlay.style.height=dispH+'px';
+  const wrap=drawCanvas.closest('.draw-canvas-wrap');
+  const wrapR=wrap.getBoundingClientRect();
+  drawGridOverlay.style.left=(r.left-wrapR.left)+'px';
+  drawGridOverlay.style.top=(r.top-wrapR.top)+'px';
+  if(!showDrawGrid){drawGridOverlay.style.display='none';return;}
+  drawGridOverlay.style.display='block';
+  const ctx=drawGridOverlay.getContext('2d');
+  ctx.clearRect(0,0,drawGridOverlay.width,drawGridOverlay.height);
+  const scaleX=dispW/blockCols,scaleY=dispH/blockRows;
+  ctx.strokeStyle='rgba(178,34,52,0.5)';ctx.lineWidth=1;
+  for(let c=0;c<=blockCols;c++){ctx.beginPath();ctx.moveTo(Math.round(c*scaleX)+0.5,0);ctx.lineTo(Math.round(c*scaleX)+0.5,dispH);ctx.stroke();}
+  for(let rr=0;rr<=blockRows;rr++){ctx.beginPath();ctx.moveTo(0,Math.round(rr*scaleY)+0.5);ctx.lineTo(dispW,Math.round(rr*scaleY)+0.5);ctx.stroke();}
+}
+
+function drawUploadGridOverlayOnCanvas(){
+  const vpW=cropViewport.clientWidth||300,vpH=cropViewport.clientHeight||300;
+  uploadGridOverlay.width=vpW;uploadGridOverlay.height=vpH;
+  uploadGridOverlay.style.width=vpW+'px';uploadGridOverlay.style.height=vpH+'px';
+  if(!showUploadGrid){uploadGridOverlay.style.display='none';return;}
+  uploadGridOverlay.style.display='block';
+  const ctx=uploadGridOverlay.getContext('2d');
+  ctx.clearRect(0,0,vpW,vpH);
+  const scaleX=vpW/blockCols,scaleY=vpH/blockRows;
+  ctx.strokeStyle='rgba(178,34,52,0.5)';ctx.lineWidth=1;
+  for(let c=0;c<=blockCols;c++){ctx.beginPath();ctx.moveTo(Math.round(c*scaleX)+0.5,0);ctx.lineTo(Math.round(c*scaleX)+0.5,vpH);ctx.stroke();}
+  for(let rr=0;rr<=blockRows;rr++){ctx.beginPath();ctx.moveTo(0,Math.round(rr*scaleY)+0.5);ctx.lineTo(vpW,Math.round(rr*scaleY)+0.5);ctx.stroke();}
+}
+// ──────────────────────────────────────────────────────────────────────────
+
+// ── Canvas sizing ───────────────────────────────────────────────────────────
+function canvasDims(bc,br){
+  if(bc>br){
+    const cw=600;
+    const ch=Math.floor(600*br/bc);
+    return{cw,ch};
+  }else if(bc<br){
+    const ch=400;
+    const cw=Math.floor(400*bc/br);
+    return{cw,ch};
+  }else{
+    return{cw:400,ch:400};
+  }
+}
+
+function resizeDrawCanvas(){
+  const bc=blockCols,br=blockRows;
+  const drawWrap=drawCanvas.closest('.draw-canvas-wrap');
+  if(drawWrap)drawWrap.style.aspectRatio='';
+  const{cw,ch}=canvasDims(bc,br);
+  uploadZone.style.width=cw+'px';uploadZone.style.height=ch+'px';
+  uploadZone.style.aspectRatio='';
+  cropViewport.style.width=cw+'px';cropViewport.style.height=ch+'px';
+  cropViewport.style.aspectRatio='';
+  const tmp=document.createElement('canvas');tmp.width=drawCanvas.width;tmp.height=drawCanvas.height;
+  tmp.getContext('2d').drawImage(drawCanvas,0,0);
+  drawCanvas.width=cw;drawCanvas.height=ch;
+  drawCtx.fillStyle='#fff';drawCtx.fillRect(0,0,cw,ch);
+  drawCtx.drawImage(tmp,0,0,cw,ch);
+  undoStack.length=0;redoStack.length=0;
+  drawRectCache=null;
+  updateCrop();
+  requestAnimationFrame(()=>{drawGridOverlayOnCanvas();drawUploadGridOverlayOnCanvas();});
+}
+// ──────────────────────────────────────────────────────────────────────────
+
+function updateModalTitle(){
+  const bc=blockCols,br=blockRows;
+  const count=bc*br;
+  const titleEl=$('modal-title-id');
+  if(titleEl)titleEl.textContent=count===1?'Claim Your Square':(isCustomShape(bc,br)?`Claim Your Custom ${bc}×${br} Space`:`Claim Your ${bc}×${br} Space`);
+  const payAmountEl=$('pay-amount');
+  if(payAmountEl)payAmountEl.textContent='$'+chosenBlock.price.toFixed(2);
+  const payRowLabel=$('pay-row-label');
+  if(payRowLabel)payRowLabel.textContent=chosenBlock.count===1?'Claim a square':`Claim ${chosenBlock.count} squares (${chosenBlock.cols}×${chosenBlock.rows})`;
+  const piBox=$('preview-info-box');
+  if(piBox){const pixW=bc*SQ,pixH=br*SQ;piBox.innerHTML=`Your block covers <strong>${pixW}×${pixH}px</strong> on the mosaic (${count} square${count>1?'s':''}). Image will fill the block shape.`;}
+  updateTotal();
+}
+
+drawCtx.fillStyle='#fff';drawCtx.fillRect(0,0,400,400);
+
+function pushUndo(){const cw=drawCanvas.width,ch=drawCanvas.height;undoStack.push(drawCtx.getImageData(0,0,cw,ch));if(undoStack.length>MAX_UNDO)undoStack.shift();redoStack.length=0;}
+function undoDraw(){const cw=drawCanvas.width,ch=drawCanvas.height;if(undoStack.length){redoStack.push(drawCtx.getImageData(0,0,cw,ch));drawCtx.putImageData(undoStack.pop(),0,0);}}
+function redoDraw(){const cw=drawCanvas.width,ch=drawCanvas.height;if(redoStack.length){undoStack.push(drawCtx.getImageData(0,0,cw,ch));drawCtx.putImageData(redoStack.pop(),0,0);}}
+function clearDraw(){pushUndo();drawCtx.fillStyle='#fff';drawCtx.fillRect(0,0,drawCanvas.width,drawCanvas.height);}
+
+function canvasPos(e){const r=drawRectCache||(drawRectCache=drawCanvas.getBoundingClientRect());const sx=drawCanvas.width/r.width,sy=drawCanvas.height/r.height;const src=e.touches?e.touches[0]:e;return[(src.clientX-r.left)*sx,(src.clientY-r.top)*sy];}
+
+function updateBrushCursor(e){if(drawTool==='eyedropper'||drawTool==='fill'){brushCursor.style.display='none';return;}const r=drawRectCache||(drawRectCache=drawCanvas.getBoundingClientRect());const dispSize=(+brushSizeEl.value)*(r.width/drawCanvas.width);const src=e.touches?e.touches[0]:e;brushCursor.style.display='block';brushCursor.style.width=dispSize+'px';brushCursor.style.height=dispSize+'px';brushCursor.style.left=src.clientX+'px';brushCursor.style.top=src.clientY+'px';}
+function hideBrushCursor(){brushCursor.style.display='none';}
+
+const LOUPE_SIZE=80,LOUPE_GRID=7,LOUPE_CELL=Math.floor(80/7);
+function updateLoupe(e){const r=drawRectCache||(drawRectCache=drawCanvas.getBoundingClientRect());const cw=drawCanvas.width,ch=drawCanvas.height;const px=Math.round((e.clientX-r.left)*(cw/r.width)),py=Math.round((e.clientY-r.top)*(ch/r.height));const half=Math.floor(LOUPE_GRID/2);loupeCtx.clearRect(0,0,LOUPE_SIZE,LOUPE_SIZE);for(let dy=0;dy<LOUPE_GRID;dy++)for(let dx=0;dx<LOUPE_GRID;dx++){const p=drawCtx.getImageData(clamp(px-half+dx,0,cw-1),clamp(py-half+dy,0,ch-1),1,1).data;loupeCtx.fillStyle=`rgb(${p[0]},${p[1]},${p[2]})`;loupeCtx.fillRect(dx*LOUPE_CELL,dy*LOUPE_CELL,LOUPE_CELL,LOUPE_CELL);}loupeCtx.strokeStyle='rgba(0,0,0,0.25)';loupeCtx.lineWidth=0.5;for(let i=0;i<=LOUPE_GRID;i++){loupeCtx.beginPath();loupeCtx.moveTo(i*LOUPE_CELL,0);loupeCtx.lineTo(i*LOUPE_CELL,LOUPE_SIZE);loupeCtx.stroke();loupeCtx.beginPath();loupeCtx.moveTo(0,i*LOUPE_CELL);loupeCtx.lineTo(LOUPE_SIZE,i*LOUPE_CELL);loupeCtx.stroke();}const hx=half*LOUPE_CELL,hy=half*LOUPE_CELL;loupeCtx.strokeStyle='rgba(255,255,255,0.9)';loupeCtx.lineWidth=2;loupeCtx.strokeRect(hx+1,hy+1,LOUPE_CELL-2,LOUPE_CELL-2);loupeCtx.strokeStyle='rgba(0,0,0,0.8)';loupeCtx.lineWidth=1;loupeCtx.strokeRect(hx+2,hy+2,LOUPE_CELL-4,LOUPE_CELL-4);const cp=drawCtx.getImageData(clamp(px,0,cw-1),clamp(py,0,ch-1),1,1).data,hex=rgbToHex(cp[0],cp[1],cp[2]);loupeCtx.fillStyle='rgba(0,0,0,0.75)';loupeCtx.fillRect(0,LOUPE_SIZE-14,LOUPE_SIZE,14);loupeCtx.fillStyle='#fff';loupeCtx.font='bold 9px monospace';loupeCtx.textAlign='center';loupeCtx.textBaseline='middle';loupeCtx.fillText(hex.toUpperCase(),LOUPE_SIZE/2,LOUPE_SIZE-7);let lx2=e.clientX+20,ly2=e.clientY-LOUPE_SIZE-10;if(lx2+LOUPE_SIZE+4>window.innerWidth)lx2=e.clientX-LOUPE_SIZE-24;if(ly2<0)ly2=e.clientY+20;loupeCanvas.style.left=lx2+'px';loupeCanvas.style.top=ly2+'px';loupeCanvas.style.display='block';}
+function hideLoupe(){loupeCanvas.style.display='none';}
+
+function drawSegment(e){const[x,y]=canvasPos(e);drawCtx.beginPath();drawCtx.moveTo(lx,ly);drawCtx.lineTo(x,y);drawCtx.lineWidth=+brushSizeEl.value;drawCtx.lineCap='round';drawCtx.lineJoin='round';drawCtx.globalCompositeOperation='source-over';drawCtx.strokeStyle=drawTool==='eraser'?'#ffffff':curHex;drawCtx.stroke();lx=x;ly=y;}
+
+function eyedrop(e){const[x,y]=canvasPos(e);const p=drawCtx.getImageData(Math.round(x),Math.round(y),1,1).data;applyHex(rgbToHex(p[0],p[1],p[2]));setTool('pen');hideLoupe();}
+
+function floodFill(e){const[fx,fy]=canvasPos(e);const x=Math.round(fx),y=Math.round(fy),W=drawCanvas.width,H=drawCanvas.height;const imgData=drawCtx.getImageData(0,0,W,H),d=imgData.data;const at=(px,py)=>(py*W+px)*4,i=at(x,y);const tr=d[i],tg=d[i+1],tb=d[i+2];const fr=parseInt(curHex.slice(1,3),16),fg=parseInt(curHex.slice(3,5),16),fb=parseInt(curHex.slice(5,7),16);if(Math.abs(tr-fr)<3&&Math.abs(tg-fg)<3&&Math.abs(tb-fb)<3)return;pushUndo();const isBg=pi=>{const dr=d[pi]-tr,dg=d[pi+1]-tg,db=d[pi+2]-tb;return Math.sqrt(dr*dr+dg*dg+db*db)<=40;};const visited=new Uint8Array(W*H),stack=[x+(y<<16)];visited[y*W+x]=1;while(stack.length){const v=stack.pop(),cx=v&0xFFFF,cy=v>>16,pi=at(cx,cy);d[pi]=fr;d[pi+1]=fg;d[pi+2]=fb;d[pi+3]=255;const chk=(nx,ny)=>{if(nx<0||nx>=W||ny<0||ny>=H)return;const vi=ny*W+nx;if(visited[vi])return;visited[vi]=1;if(isBg(at(nx,ny)))stack.push(nx+(ny<<16));};chk(cx+1,cy);chk(cx-1,cy);chk(cx,cy+1);chk(cx,cy-1);}drawCtx.putImageData(imgData,0,0);}
+
+function setTool(t){drawTool=t;document.querySelectorAll('[data-tool]').forEach(b=>{const active=b.dataset.tool===t;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});drawCanvas.style.cursor=(t==='fill')?'crosshair':'none';if(t!=='eyedropper')hideLoupe();}
+
+function onDrawStart(e){e.preventDefault();refreshDrawRect();if(drawTool==='eyedropper'){eyedrop(e);return;}if(drawTool==='fill'){floodFill(e);return;}pushUndo();isDrawing=true;[lx,ly]=canvasPos(e);drawCtx.globalCompositeOperation='source-over';drawCtx.fillStyle=drawTool==='eraser'?'#ffffff':curHex;drawCtx.beginPath();drawCtx.arc(lx,ly,+brushSizeEl.value/2,0,6.283);drawCtx.fill();}
+function onDrawMove(e){e.preventDefault();updateBrushCursor(e);if(drawTool==='eyedropper'){updateLoupe(e);return;}if(isDrawing)drawSegment(e);}
+function onDrawEnd(){isDrawing=false;}
+function onDrawLeave(){hideBrushCursor();hideLoupe();}
+
+// ── captureImageData: renders at the ACTUAL mosaic pixel size (blockCols*SQ ×
+// blockRows*SQ, i.e. as small as 15×15) instead of the large editing-canvas
+// size, then encodes as WebP (falls back to JPEG if WebP unsupported), with
+// quality stepped down until the result is comfortably small. Images are
+// never displayed larger than bc*SQ × br*SQ px on the site, so there is no
+// reason to store more data than that. ────────────────────────────────────
+const STORE_MAX_BYTES=40*1024; // hard ceiling per stored image (~40KB)
+
+function encodeSmallest(canvas){
+  // Prefer WebP; some old browsers silently fall back to PNG if WebP isn't
+  // supported, so we detect that and fall back to JPEG ourselves instead.
+  const supportsWebp=canvas.toDataURL('image/webp',0.8).indexOf('data:image/webp')===0;
+  const mime=supportsWebp?'image/webp':'image/jpeg';
+  let quality=0.8,dataUrl=canvas.toDataURL(mime,quality);
+  // Step quality down until we're under the size ceiling or hit a floor.
+  while(dataUrl.length*0.75>STORE_MAX_BYTES&&quality>0.35){
+    quality-=0.1;
+    dataUrl=canvas.toDataURL(mime,quality);
+  }
+  return dataUrl;
+}
+
+// Multiplier used ONLY for the on-screen preview render of the user's own
+// square (never for the stored/submitted image). The live preview shows the
+// square zoomed in ~6.7x (CELL_PX/SQ) compared to its true on-site size, so
+// re-using the bare SQ×SQ storage resolution for that zoomed-in view makes
+// it look far grainier than it will ever actually look on the mosaic. This
+// renders the preview source a bit sharper than the stored 1x resolution —
+// but well short of the full editing-canvas resolution — so the preview is
+// a fair approximation of "small image at native size" rather than "tiny
+// image stretched 6.7x".
+const PREVIEW_RES_MULT=3;
+
+function captureImageData(scale=1){
+  const bc=blockCols,br=blockRows;
+  // Output at the true on-mosaic pixel size, not the (much larger) editing
+  // canvas size. This is the single biggest lever on stored file size: e.g.
+  // a 1×1 square only ever needs to be 15×15px, and even a 10×10 block only
+  // needs 150×150px — never the 600×400 the editor uses for a nice UX.
+  // `scale` bumps this up for preview-only renders (see PREVIEW_RES_MULT);
+  // it must stay 1 for the actual stored/submitted image.
+  const outW=bc*SQ*scale,outH=br*SQ*scale;
+  const flat=document.createElement('canvas');flat.width=outW;flat.height=outH;
+  const ctx=flat.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,outW,outH);
+  if(activeTab==='draw'){
+    ctx.drawImage(drawCanvas,0,0,outW,outH);
+    return encodeSmallest(flat);
+  }
+  const vpW=cropViewport.clientWidth||outW;
+  const vpH=cropViewport.clientHeight||outH;
+  const dw=parseFloat(cropImg.style.width)||vpW;
+  const dh=parseFloat(cropImg.style.height)||vpH;
+  const scaleX=imgNatW/dw,scaleY=imgNatH/dh;
+  const srcX=(-imgOffX)*scaleX,srcY=(-imgOffY)*scaleY;
+  const srcW=vpW*scaleX,srcH=vpH*scaleY;
+  ctx.drawImage(cropImg,srcX,srcY,srcW,srcH,0,0,outW,outH);
+  return encodeSmallest(flat);
+}
+// ──────────────────────────────────────────────────────────────────────────
+
+function getCropSnap(){return{ox:imgOffX,oy:imgOffY,sc:+cropScale.value};}
+function applyCropSnap(s){imgOffX=s.ox;imgOffY=s.oy;cropScale.value=s.sc;updateCrop();}
+function pushCropUndo(){cropUndoStack.push(getCropSnap());if(cropUndoStack.length>MAX_UNDO)cropUndoStack.shift();cropRedoStack.length=0;}
+function undoCrop(){if(cropUndoStack.length){cropRedoStack.push(getCropSnap());applyCropSnap(cropUndoStack.pop());}}
+function redoCrop(){if(cropRedoStack.length){cropUndoStack.push(getCropSnap());applyCropSnap(cropRedoStack.pop());}}
+function minScale(){const vpW=cropViewport.clientWidth||300;const vpH=cropViewport.clientHeight||300;return Math.max(vpW/imgNatW,vpH/imgNatH);}
+function updateCrop(){vpPx=cropViewport.clientWidth||300;const vpW=cropViewport.clientWidth||300;const vpH=cropViewport.clientHeight||300;if(!imgNatW||!imgNatH)return;const sc=minScale()*(+cropScale.value/100);const dw=imgNatW*sc,dh=imgNatH*sc;imgOffX=clamp(imgOffX,vpW-dw,0);imgOffY=clamp(imgOffY,vpH-dh,0);cropImg.style.cssText=`width:${dw}px;height:${dh}px;left:${imgOffX}px;top:${imgOffY}px`;drawUploadGridOverlayOnCanvas();}
+
+function loadImageFile(file){
+  if(!file)return;
+  const allowed=['image/jpeg','image/png','image/webp'];
+  if(!allowed.includes(file.type)){showInlineError('upload-file-err','Only JPG, PNG, and WEBP images are accepted.');return;}
+  if(file.size>MAX_IMAGE_BYTES){showInlineError('upload-file-err','Image must be 5 MB or smaller. Please compress and retry.');return;}
+  showInlineError('upload-file-err','');
+  const reader=new FileReader();reader.onload=ev=>{cropImg.onload=function(){imgNatW=cropImg.naturalWidth;imgNatH=cropImg.naturalHeight;uploadZone.style.display='none';cropUI.style.display='flex';uploadCtrlRow.style.display='flex';cropUndoStack.length=0;cropRedoStack.length=0;requestAnimationFrame(()=>{vpPx=cropViewport.clientWidth||300;cropScale.value=100;imgOffX=0;imgOffY=0;updateCrop();});};cropImg.src=ev.target.result;};reader.readAsDataURL(file);
+}
+function clearUpload(){uploadFileEl.value='';cropImg.src='';cropUI.style.display='none';uploadZone.style.display='flex';uploadCtrlRow.style.display='none';cropUndoStack.length=0;cropRedoStack.length=0;showInlineError('upload-file-err','');}
+
+function drawEmptySquare(i){const{row,col}=slotRC(i),dx=col*SQ,dy=row*SQ;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(dx,dy,SQ,SQ);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5;mosaicCtx.strokeRect(dx+0.25,dy+0.25,SQ-0.5,SQ-0.5);mosaicCtx.fillStyle='rgba(180,180,180,0.55)';mosaicCtx.font=`${SQ*0.42}px Inter,sans-serif`;mosaicCtx.textAlign='center';mosaicCtx.textBaseline='middle';mosaicCtx.fillText(i+1,dx+SQ/2,dy+SQ/2);}
+
+function initMosaicCanvas(){mosaicCanvas.width=GRID_W;mosaicCanvas.height=GRID_H;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(0,0,GRID_W,GRID_H);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5;for(let c=0;c<=COLS;c++){mosaicCtx.beginPath();mosaicCtx.moveTo(c*SQ,0);mosaicCtx.lineTo(c*SQ,GRID_H);mosaicCtx.stroke();}for(let r=0;r<=ROWS;r++){mosaicCtx.beginPath();mosaicCtx.moveTo(0,r*SQ);mosaicCtx.lineTo(GRID_W,r*SQ);mosaicCtx.stroke();}for(let i=0;i<TOTAL;i++)drawEmptySquare(i);}
+
+function renderSquareToCanvas(i){const sq=squares[i];const{row,col}=slotRC(i);const dx=col*SQ,dy=row*SQ;if(!sq){drawEmptySquare(i);return Promise.resolve();}if(sq._bmp){mosaicCtx.drawImage(sq._bmp,dx,dy,SQ,SQ);return Promise.resolve();}return new Promise(res=>{const img=new Image();img.onload=()=>{if(typeof createImageBitmap!=='undefined'){createImageBitmap(img,{resizeWidth:SQ,resizeHeight:SQ,resizeQuality:'medium'}).then(bmp=>{sq._bmp=bmp;mosaicCtx.drawImage(bmp,dx,dy,SQ,SQ);res();}).catch(()=>{mosaicCtx.drawImage(img,dx,dy,SQ,SQ);res();});}else{mosaicCtx.drawImage(img,dx,dy,SQ,SQ);res();}};img.onerror=res;img.src=sq.imageData;});}
+
+async function loadAllClaimed(){const cl=[];for(let i=0;i<TOTAL;i++)if(squares[i])cl.push(i);const B=50;for(let b=0;b<cl.length;b+=B)await Promise.all(cl.slice(b,b+B).map(renderSquareToCanvas));}
+
+async function fetchBoard(){
+  try{
+    const res=await fetch(`${API_BASE}/api/board`);
+    if(!res.ok)throw new Error('API '+res.status);
+    const data=await res.json();
+    squares.fill(null);
+    const claimList=data.claims||[];
+    const BATCH=20;
+    for(let b=0;b<claimList.length;b+=BATCH){
+      await Promise.all(claimList.slice(b,b+BATCH).map(async(claim)=>{
+        const i=claim.slot;
+        try{
+          const imgRes=await fetch(`${API_BASE}/api/image/${i}`);
+          if(!imgRes.ok)return;
+          const blob=await imgRes.blob();
+          const dataUrl=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob);});
+          squares[i]={imageData:dataUrl,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now()};
+        }catch(_){}
+      }));
+    }
+    isUsingRealBackend=true;
+    if(countDisplay)countDisplay.textContent=data.count||claimedCount();
+    await loadAllClaimed();
+    return true;
+  }catch(e){
+    console.warn('[6000Squares] Using local demo mode:',e.message);
+    isUsingRealBackend=false;
+    return false;
+  }
+}
+
+// Sends the full slot list (not just the anchor) so the server can place a
+// short-lived hold on every square in a multi-square block, not only its
+// top-left corner. Reserving only the anchor would leave a window where two
+// non-overlapping *anchors* could still claim blocks that share a non-anchor
+// square. The server remains the source of truth here — this hold is just
+// a courtesy so a square doesn't get sniped mid-checkout.
+async function reserveSlot(slot,slots){const res=await fetch(`${API_BASE}/api/reserve-slot`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slot,slots})});const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not reserve this square. Please try another.');return data;}
+
+function handleSuccessRedirect(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('success')==='1'){
+    const slot=params.get('slot')?parseInt(params.get('slot'),10):-1;
+    window.history.replaceState({},document.title,window.location.pathname);
+    setTimeout(async()=>{
+      showToast('🎉 Payment successful! Your square is now live.');
+      await fetchBoard();
+      if(!isNaN(slot)&&slot>=0&&slot<TOTAL){
+        const{row,col}=slotRC(slot);
+        scrollToGridPosition(col*SQ+SQ/2,row*SQ+SQ/2);
+        setTimeout(()=>{const dx=col*SQ,dy=row*SQ;let f=0;const iv=setInterval(()=>{if(f>6){clearInterval(iv);renderSquareToCanvas(slot);return;}mosaicCtx.fillStyle=(f%2)?'rgba(200,149,10,0.7)':'rgba(200,149,10,0)';mosaicCtx.fillRect(dx,dy,SQ,SQ);f++;},150);},300);
+      }
+    },700);
+  }
+}
+
+// gx,gy here are in mosaic-canvas BUFFER pixel space (e.g. col*SQ+SQ/2).
+// Convert to on-screen CSS pixels using the canvas's current display scale
+// before computing a scroll target, so this works whether the canvas is
+// shown at native size (desktop) or scaled down to fit (mobile).
+function scrollToGridPosition(gx,gy){const rect=mosaicCanvas.getBoundingClientRect();const sx=rect.width/mosaicCanvas.width,sy=rect.height/mosaicCanvas.height;const cssX=gx*sx,cssY=gy*sy;const cpx=rect.left+window.scrollX,cpy=rect.top+window.scrollY;window.scrollTo({left:clamp(cpx+cssX-window.innerWidth/2,0,document.body.scrollWidth-window.innerWidth),top:clamp(cpy+cssY-window.innerHeight/2,0,document.body.scrollHeight-window.innerHeight),behavior:'smooth'});}
+
+function slotFromPoint(cx,cy){const{x:gx,y:gy}=canvasClientToLocal(mosaicCanvas,cx,cy);if(gx<0||gy<0||gx>=GRID_W||gy>=GRID_H)return -1;return rcSlot((gy/SQ)|0,(gx/SQ)|0);}
+
+function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i===tooltipSlot)return;tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];const dateStr=sq.timestamp?new Date(sq.timestamp).toLocaleDateString():'';const tip=(sq.desc?sq.desc+'\n':'')+dateStr;tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
+
+function vpMouseLeave(){tooltipEl.style.display='none';tooltipSlot=-1;}
+
+function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i])return;chosenSlot=i;openClaimModal(i);}
+
+function trapFocus(e){
+  if(e.key!=='Tab')return;
+  const focusable=Array.from(claimOverlay.querySelectorAll('a[href],button:not([disabled]),input:not([disabled]),select,textarea,[tabindex="0"]')).filter(el=>!el.closest('[style*="display:none"]')&&!el.closest('[style*="display: none"]'));
+  if(!focusable.length)return;
+  const first=focusable[0],last=focusable[focusable.length-1];
+  if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}
+  else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}
+}
+function onModalKeydown(e){if(e.key==='Escape'){closeClaimModal();return;}trapFocus(e);}
+
+function openClaimModal(idx){
+  chosenSlot=idx;currentReservationToken=null;
+  clearInlineErrors();clearDraw();
+  drawDescEl.value='';uploadDescEl.value='';
+  $('draw-url').value='';$('upload-url').value='';
+  clearUpload();switchTab('draw');showStep(0);
+  blockCols=1;blockRows=1;
+  if(!commitBlock(idx,1,1)){
+    // fallback: chosen square unavailable for 1x1 somehow — find nearest empty
+    const fe=firstEmpty();
+    if(fe<0){closeClaimModal();showToast('All squares are claimed!');return;}
+    chosenSlot=fe;commitBlock(fe,1,1);
+  }
+  renderBlockPicker();updateModalTitle();resizeDrawCanvas();
+  showDrawGrid=false;showUploadGrid=false;
+  const gdb=$('btn-toggle-draw-grid');if(gdb){gdb.classList.remove('active');gdb.setAttribute('aria-pressed','false');}
+  const gub=$('btn-toggle-upload-grid');if(gub){gub.classList.remove('active');gub.setAttribute('aria-pressed','false');}
+  claimOverlay.classList.add('open');
+  requestAnimationFrame(()=>{const f=claimOverlay.querySelector('button,input,[tabindex="0"]');if(f)f.focus();drawSVCanvas();drawSpectrumBar();drawGridOverlayOnCanvas();drawUploadGridOverlayOnCanvas();});
+  applyHex('#B22234');
+  startClaimPolling();
+  document.addEventListener('keydown',onModalKeydown);
+}
+function closeClaimModal(){claimOverlay.classList.remove('open');document.removeEventListener('keydown',onModalKeydown);currentReservationToken=null;stopClaimPolling();}
+function switchTab(tab){activeTab=tab;$('panel-draw').style.display=tab==='draw'?'block':'none';$('panel-upload').style.display=tab==='upload'?'block':'none';$('tab-draw-btn').classList.toggle('active',tab==='draw');$('tab-upload-btn').classList.toggle('active',tab==='upload');$('tab-draw-btn').setAttribute('aria-selected',String(tab==='draw'));$('tab-upload-btn').setAttribute('aria-selected',String(tab==='upload'));if(tab==='draw')requestAnimationFrame(()=>{drawSVCanvas();drawSpectrumBar();});}
+function showStep(n){currentStep=n;if(n===1)buildPreviewStep();$('step-0').style.display=n===0?'block':'none';$('step-1').style.display=n===1?'block':'none';}
+
+function buildPreviewStep(){
+  if(chosenSlot===null){const fe=firstEmpty();if(fe<0)return;chosenSlot=fe;}
+  currentImageData=captureImageData();
+  currentPreviewImageData=captureImageData(PREVIEW_RES_MULT);
+  currentDesc=(activeTab==='draw'?drawDescEl.value:uploadDescEl.value).trim();
+  currentUrl=(activeTab==='draw'?$('draw-url').value:$('upload-url').value).trim();
+  previewSelected=chosenSlot;
+  const{row,col}=slotRC(chosenSlot);
+  previewViewCol=clamp(col-Math.floor(PREV_COLS/2),0,COLS-PREV_COLS);
+  previewViewRow=clamp(row-Math.floor(PREV_ROWS/2),0,ROWS-PREV_ROWS);
+  slotTakenMsg.classList.remove('show');btnGotoEmpty.classList.remove('show');
+  drawPreviewGrid();updatePosLabel();updatePrevMinimap();
+  slotNumberInput.value=chosenSlot+1;
+  cb1.checked=false;cb2.checked=false;donationInput.value='';updateTotal();
+  submitBtn.disabled=true;submitBtn.setAttribute('aria-disabled','true');
+  showInlineError('checkout-error','');
+}
+
+function drawCellImage(sq,x,y){
+  previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';
+  if(sq._bmp){previewGridCtx.drawImage(sq._bmp,x,y,CELL_PX,CELL_PX);return;}
+  if(sq._img){previewGridCtx.drawImage(sq._img,x,y,CELL_PX,CELL_PX);return;}
+  const img=new Image();img.onload=()=>{previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';previewGridCtx.drawImage(img,x,y,CELL_PX,CELL_PX);};img.src=sq.imageData;
+}
+
+function drawPreviewGrid(){
+  previewGridCanvas.width=PREV_COLS*CELL_PX;previewGridCanvas.height=PREV_ROWS*CELL_PX;
+  previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';
+  const blockSlots=previewSelected>=0?getBlockSlots(previewSelected,blockCols,blockRows):null;
+  const blockSlotSet=new Set(blockSlots||[]);
+  for(let r=0;r<PREV_ROWS;r++){for(let c=0;c<PREV_COLS;c++){
+    const gc=previewViewCol+c,gr=previewViewRow+r,i=rcSlot(gr,gc);
+    const x=c*CELL_PX,y=r*CELL_PX;
+    if(blockSlotSet.has(i)){
+      const{row:br2,col:bc2}=slotRC(i);
+      const{row:ar,col:ac}=slotRC(previewSelected>=0?previewSelected:i);
+      const bx=(bc2-ac)/blockCols,by=(br2-ar)/blockRows;
+      previewGridCtx.fillStyle='#f5f5f5';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);
+      if(currentPreviewImageData||currentImageData){
+        const img=new Image();
+        const ix=bx,iy=by;
+        img.onload=()=>{
+          previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';
+          previewGridCtx.save();previewGridCtx.beginPath();previewGridCtx.rect(x,y,CELL_PX,CELL_PX);previewGridCtx.clip();
+          previewGridCtx.drawImage(img,x-ix*blockCols*CELL_PX,y-iy*blockRows*CELL_PX,blockCols*CELL_PX,blockRows*CELL_PX);
+          previewGridCtx.restore();
+          const{row:ar2,col:ac2}=slotRC(previewSelected);
+          const bStartX=(ac2-previewViewCol)*CELL_PX,bStartY=(ar2-previewViewRow)*CELL_PX;
+          const bEndX=bStartX+blockCols*CELL_PX,bEndY=bStartY+blockRows*CELL_PX;
+          previewGridCtx.strokeStyle='#B22234';previewGridCtx.lineWidth=3;
+          previewGridCtx.strokeRect(bStartX+1.5,bStartY+1.5,(bEndX-bStartX)-3,(bEndY-bStartY)-3);
+          const cxBlock=bStartX+(bEndX-bStartX)/2,cyBlock=bStartY+(bEndY-bStartY)/2;
+          previewGridCtx.fillStyle='rgba(255,255,255,.88)';previewGridCtx.fillRect(cxBlock-20,cyBlock-7,40,14);
+          previewGridCtx.fillStyle='#B22234';previewGridCtx.font='bold 8px Inter,sans-serif';
+          previewGridCtx.textAlign='center';previewGridCtx.textBaseline='middle';
+          previewGridCtx.fillText('YOURS',cxBlock,cyBlock);
+        };img.src=currentPreviewImageData||currentImageData;
+      }
+    }else if(squares[i]){
+      previewGridCtx.fillStyle='#eee';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);drawCellImage(squares[i],x,y);
+    }else{
+      previewGridCtx.fillStyle='#f5f5f5';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);previewGridCtx.fillStyle='rgba(180,180,180,.55)';previewGridCtx.font='11px Inter,sans-serif';previewGridCtx.textAlign='center';previewGridCtx.textBaseline='middle';previewGridCtx.fillText(i+1,x+CELL_PX/2,y+CELL_PX/2);previewGridCtx.strokeStyle='rgba(180,180,180,.6)';previewGridCtx.lineWidth=0.5;previewGridCtx.strokeRect(x+0.25,y+0.25,CELL_PX-0.5,CELL_PX-0.5);
+    }
+  }}
+}
+
+function previewGridClick(e){const{x,y}=canvasClientToLocal(previewGridCanvas,e.clientX,e.clientY);const c=Math.floor(x/CELL_PX),row=Math.floor(y/CELL_PX);if(c<0||c>=PREV_COLS||row<0||row>=PREV_ROWS)return;const i=rcSlot(previewViewRow+row,previewViewCol+c);if(!squares[i])trySelectSlot(i);}
+function shiftPreviewView(dc,dr){previewViewCol=clamp(previewViewCol+dc,0,COLS-PREV_COLS);previewViewRow=clamp(previewViewRow+dr,0,ROWS-PREV_ROWS);drawPreviewGrid();updatePrevMinimap();}
+function updatePosLabel(){
+  if(chosenSlot===null){posLabel.textContent='—';return;}
+  const{row,col}=slotRC(chosenSlot);
+  const count=blockCols*blockRows;
+  posLabel.textContent=count===1
+    ?`slot #${chosenSlot+1} (row ${row+1}, col ${col+1})`
+    :`slots #${chosenSlot+1}–#${chosenSlot+count} — top-left at row ${row+1}, col ${col+1}`;
+}
+
+function updatePrevMinimap(){const cw=previewMMCanvas.width,ch=previewMMCanvas.height;const scX=cw/GRID_W,scY=ch/GRID_H;previewMMCtx.fillStyle='#e8e8e8';previewMMCtx.fillRect(0,0,cw,ch);for(let i=0;i<TOTAL;i++){if(!squares[i])continue;const{row,col}=slotRC(i);previewMMCtx.fillStyle='#C8950A';previewMMCtx.fillRect(col*SQ*scX,row*SQ*scY,Math.max(1,SQ*scX),Math.max(1,SQ*scY));}if(chosenSlot!==null){const{row,col}=slotRC(chosenSlot);const bw=blockCols*SQ*scX,bh=blockRows*SQ*scY;previewMMCtx.fillStyle='rgba(178,34,52,0.35)';previewMMCtx.fillRect(col*SQ*scX,row*SQ*scY,bw,bh);const dotX=col*SQ*scX+bw/2,dotY=row*SQ*scY+bh/2;previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.fillStyle='#B22234';previewMMCtx.fill();previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.strokeStyle='#fff';previewMMCtx.lineWidth=1.5;previewMMCtx.stroke();}}
+
+function pmMinimapClick(e){if(pmDotDrag)return;const{x:mx,y:my}=canvasClientToLocal(previewMMCanvas,e.clientX,e.clientY);const scX=previewMMCanvas.width/GRID_W,scY=previewMMCanvas.height/GRID_H;const col=clamp(Math.floor(mx/scX/SQ),0,COLS-1),row=clamp(Math.floor(my/scY/SQ),0,ROWS-1);const i=rcSlot(row,col);if(!squares[i])jumpToSlot(i+1);}
+
+function pmMinimapDown(e){if(chosenSlot===null)return;const scX=previewMMCanvas.width/GRID_W,scY=previewMMCanvas.height/GRID_H;const{row,col}=slotRC(chosenSlot);const dotX=col*SQ*scX+SQ*scX/2,dotY=row*SQ*scY+SQ*scY/2;const{x:mx,y:my}=canvasClientToLocal(previewMMCanvas,e.clientX,e.clientY);if(Math.hypot(mx-dotX,my-dotY)<=10){pmDotDrag=true;e.preventDefault();const onMove=ev=>{const{x:mx2,y:my2}=canvasClientToLocal(previewMMCanvas,ev.clientX,ev.clientY);const nc=clamp(Math.floor(mx2/scX/SQ),0,COLS-1),nr=clamp(Math.floor(my2/scY/SQ),0,ROWS-1);const ni=rcSlot(nr,nc);if(!squares[ni])trySelectSlot(ni);};const onUp=()=>{pmDotDrag=false;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);}}
+
+function trySelectSlot(newSlot){
+  if(newSlot<0||newSlot>=TOTAL)return false;
+  const bSlots=getBlockSlots(newSlot,blockCols,blockRows);
+  if(!bSlots){
+    slotTakenMsg.textContent='Block extends outside the grid — pick a different position.';
+    slotTakenMsg.classList.add('show');btnGotoEmpty.classList.add('show');return false;
+  }
+  const takenSlot=bSlots.find(s=>squares[s]);
+  if(takenSlot!==undefined){
+    const count=blockCols*blockRows;
+    slotTakenMsg.textContent=count===1?'Sorry, this square is taken — please pick another.':'Part of this block is taken — try a different position.';
+    slotTakenMsg.classList.add('show');btnGotoEmpty.classList.add('show');return false;
+  }
+  slotTakenMsg.classList.remove('show');btnGotoEmpty.classList.remove('show');
+  previewSelected=newSlot;chosenSlot=newSlot;
+  commitBlock(newSlot,blockCols,blockRows);
+  slotNumberInput.value=newSlot+1;
+  const{row,col}=slotRC(newSlot);
+  previewViewCol=clamp(col-Math.floor(PREV_COLS/2),0,COLS-PREV_COLS);
+  previewViewRow=clamp(row-Math.floor(PREV_ROWS/2),0,ROWS-PREV_ROWS);
+  drawPreviewGrid();updatePosLabel();updatePrevMinimap();updateTotal();
+  return true;
+}
+function jumpToSlot(n){return trySelectSlot(clamp(n-1,0,TOTAL-1));}
+
+function updateTotal(){const don=Math.max(0,parseFloat(donationInput.value)||0);const total=(chosenBlock.price+don).toFixed(2);totalDisplay.textContent='$'+total;if(cb1.checked&&cb2.checked)submitBtnLabel.textContent='Pay $'+total+' & Submit';}
+
+function checkReady(){const ok=cb1.checked&&cb2.checked;submitBtn.disabled=!ok;submitBtn.setAttribute('aria-disabled',String(!ok));if(ok)updateTotal();}
+
+async function submitSquare(){
+  if(chosenSlot===null){showInlineError('checkout-error','No square selected.');return;}
+  const cb=chosenBlock;
+  if(!isValidBlockShape(cb.cols,cb.rows)){showInlineError('checkout-error','Invalid block shape. Please re-select your block.');return;}
+  if(cb.anchor!==chosenSlot){showInlineError('checkout-error','Selection mismatch. Please re-select your block.');return;}
+  if(!cb.slots||cb.slots.length!==cb.count){showInlineError('checkout-error','Block data is inconsistent. Please re-select your block.');return;}
+  if(cb.price!==cb.count*PRICE_PER_SQUARE){showInlineError('checkout-error','Price tampered. Please reload the page.');return;}
+  const takenSlot=cb.slots.find(s=>squares[s]);
+  if(takenSlot!==undefined){showInlineError('checkout-error','Part of this block was just claimed by someone else. Please pick another position.');handleLiveConflict();return;}
+  const urlErr=validateUrl(currentUrl);
+  if(urlErr){showInlineError('checkout-error',urlErr);return;}
+  submitBtn.disabled=true;submitBtn.setAttribute('aria-disabled','true');submitBtn.classList.add('loading');submitBtnLabel.textContent='Reserving…';
+  showInlineError('checkout-error','');
+  const don=Math.max(0,Math.floor((parseFloat(donationInput.value)||0)*100))/100;
+  try{
+    let reservationToken=null;
+    if(isUsingRealBackend){const reserveData=await reserveSlot(cb.anchor,[...cb.slots]);reservationToken=reserveData.reservation_token;currentReservationToken=reservationToken;}
+    submitBtnLabel.textContent='Redirecting to payment…';
+    const body=isUsingRealBackend
+      ?{reservation_token:reservationToken,slots:[...cb.slots],slot:cb.anchor,block_cols:cb.cols,block_rows:cb.rows,square_count:cb.count,imageData:currentImageData,description:currentDesc,url:currentUrl,donation:don}
+      :{slots:[...cb.slots],slot:cb.anchor,block_cols:cb.cols,block_rows:cb.rows,square_count:cb.count,imageData:currentImageData,description:currentDesc,url:currentUrl,donation:don};
+    const res=await fetch(`${API_BASE}/api/create-checkout`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await res.json();
+    if(!res.ok){showInlineError('checkout-error',data.error||'Could not start payment. Please try again.');return;}
+    if(data.checkoutUrl){closeClaimModal();window.location.href=data.checkoutUrl;}
+    else{showInlineError('checkout-error','No checkout URL returned. Please contact support.');}
+  }catch(err){
+    console.error('submitSquare error:',err);
+    showInlineError('checkout-error','Network error. Please check your connection and try again.');
+  }finally{
+    submitBtn.classList.remove('loading');checkReady();submitBtnLabel.textContent='Pay and Submit';
+  }
+}
+
+function init(){
+  initMosaicCanvas();
+  boardLoadingEl.style.display='flex';
+  fetchBoard().then(usedReal=>{
+    boardLoadingEl.style.display='none';
+    if(!usedReal){loadState();loadAllClaimed().then(()=>{if(countDisplay)countDisplay.textContent=claimedCount();});}
+  });
+  handleSuccessRedirect();
+  applyHex('#B22234');
+  initCustomSizePickerEvents();
+
+  vpContainer.addEventListener('click',handleGridClick);
+  vpContainer.addEventListener('mousemove',vpMouseMove,{passive:true});
+  vpContainer.addEventListener('mouseleave',vpMouseLeave);
+  mosaicCanvas.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();const fe=firstEmpty();if(fe>=0){chosenSlot=fe;openClaimModal(fe);}}});
+
+  $('btn-claim').addEventListener('click',()=>{const fe=firstEmpty();if(fe<0){showToast('All squares are claimed!');return;}chosenSlot=fe;openClaimModal(fe);});
+  $('claim-close').addEventListener('click',closeClaimModal);
+
+  let mdDown=false;
+  claimOverlay.addEventListener('pointerdown',e=>{mdDown=e.target===claimOverlay;});
+  claimOverlay.addEventListener('pointerup',e=>{if(mdDown&&e.target===claimOverlay)closeClaimModal();mdDown=false;});
+
+  $('tab-draw-btn').addEventListener('click',()=>switchTab('draw'));
+  $('tab-upload-btn').addEventListener('click',()=>switchTab('upload'));
+  document.querySelectorAll('[data-tool]').forEach(b=>b.addEventListener('click',()=>setTool(b.dataset.tool)));
+  $('btn-undo').addEventListener('click',undoDraw);$('btn-redo').addEventListener('click',redoDraw);$('btn-clear').addEventListener('click',clearDraw);
+
+  brushSizeEl.addEventListener('input',()=>{brushSizeNum.value=brushSizeEl.value;});
+  brushSizeNum.addEventListener('input',()=>{const v=clamp(+brushSizeNum.value||1,1,80);brushSizeEl.value=v;brushSizeNum.value=v;});
+
+  let svDown=false;
+  svCanvas.addEventListener('mousedown',e=>{svDown=true;svPick(e);});
+  document.addEventListener('mousemove',e=>{if(svDown)svPick(e);});
+  document.addEventListener('mouseup',()=>{svDown=false;});
+  svCanvas.addEventListener('touchstart',e=>{e.preventDefault();svPick(e.touches[0]);},{passive:false});
+  svCanvas.addEventListener('touchmove',e=>{e.preventDefault();svPick(e.touches[0]);},{passive:false});
+
+  let spDown=false;
+  spectrumBar.addEventListener('mousedown',e=>{spDown=true;specPickX(e.clientX);});
+  document.addEventListener('mousemove',e=>{if(spDown)specPickX(e.clientX);});
+  document.addEventListener('mouseup',()=>{spDown=false;});
+  spectrumBar.addEventListener('touchstart',e=>{e.preventDefault();specPickX(e.touches[0].clientX);},{passive:false});
+  spectrumBar.addEventListener('touchmove',e=>{e.preventDefault();specPickX(e.touches[0].clientX);},{passive:false});
+
+  colorTextInput.addEventListener('change',()=>{const h=parseColorInput(colorTextInput.value);if(h)applyHex(h);else colorTextInput.value=curHex;});
+
+  drawCanvas.addEventListener('mousedown',onDrawStart);
+  drawCanvas.addEventListener('mousemove',onDrawMove);
+  drawCanvas.addEventListener('mouseup',onDrawEnd);
+  drawCanvas.addEventListener('mouseleave',onDrawLeave);
+  drawCanvas.addEventListener('mouseenter',()=>{refreshDrawRect();if(drawTool!=='fill')brushCursor.style.display='block';});
+  drawCanvas.addEventListener('touchstart',onDrawStart,{passive:false});
+  drawCanvas.addEventListener('touchmove',onDrawMove,{passive:false});
+  drawCanvas.addEventListener('touchend',e=>{onDrawEnd(e);hideBrushCursor();});
+
+  uploadZone.addEventListener('click',()=>uploadFileEl.click());
+  uploadZone.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();uploadFileEl.click();}});
+  uploadZone.addEventListener('dragover',e=>{e.preventDefault();uploadZone.classList.add('drag-over');},{passive:false});
+  uploadZone.addEventListener('dragleave',()=>uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop',e=>{e.preventDefault();uploadZone.classList.remove('drag-over');loadImageFile(e.dataTransfer.files[0]);},{passive:false});
+  uploadFileEl.addEventListener('change',e=>loadImageFile(e.target.files[0]));
+
+  $('crop-reset').addEventListener('click',()=>{pushCropUndo();imgOffX=0;imgOffY=0;cropScale.value=100;updateCrop();});
+  $('crop-remove').addEventListener('click',clearUpload);
+
+  let imgDrag=false,idSX=0,idSY=0,idOX=0,idOY=0;
+  cropViewport.addEventListener('mousedown',e=>{e.preventDefault();pushCropUndo();imgDrag=true;idSX=e.clientX;idSY=e.clientY;idOX=imgOffX;idOY=imgOffY;cropViewport.classList.add('grabbing');const onM=e2=>{if(!imgDrag)return;imgOffX=idOX+(e2.clientX-idSX);imgOffY=idOY+(e2.clientY-idSY);updateCrop();};const onU=()=>{imgDrag=false;cropViewport.classList.remove('grabbing');document.removeEventListener('mousemove',onM);document.removeEventListener('mouseup',onU);};document.addEventListener('mousemove',onM);document.addEventListener('mouseup',onU);});
+  cropViewport.addEventListener('touchstart',e=>{e.preventDefault();pushCropUndo();imgDrag=true;const t=e.touches[0];idSX=t.clientX;idSY=t.clientY;idOX=imgOffX;idOY=imgOffY;const onM=e2=>{const t2=e2.touches[0];imgOffX=idOX+(t2.clientX-idSX);imgOffY=idOY+(t2.clientY-idSY);updateCrop();};const onU=()=>{imgDrag=false;document.removeEventListener('touchmove',onM);document.removeEventListener('touchend',onU);};document.addEventListener('touchmove',onM,{passive:true});document.addEventListener('touchend',onU);},{passive:false});
+
+  let csSnap=null;
+  cropScale.addEventListener('mousedown',()=>{csSnap=getCropSnap();});
+  cropScale.addEventListener('input',updateCrop);
+  cropScale.addEventListener('mouseup',()=>{if(csSnap){cropUndoStack.push(csSnap);if(cropUndoStack.length>MAX_UNDO)cropUndoStack.shift();cropRedoStack.length=0;csSnap=null;}});
+  $('crop-undo').addEventListener('click',undoCrop);$('crop-redo').addEventListener('click',redoCrop);
+
+  $('btn-toggle-draw-grid').addEventListener('click',()=>{
+    showDrawGrid=!showDrawGrid;
+    const btn=$('btn-toggle-draw-grid');btn.classList.toggle('active',showDrawGrid);btn.setAttribute('aria-pressed',String(showDrawGrid));
+    drawGridOverlayOnCanvas();
+  });
+  $('btn-toggle-upload-grid').addEventListener('click',()=>{
+    showUploadGrid=!showUploadGrid;
+    const btn=$('btn-toggle-upload-grid');btn.classList.toggle('active',showUploadGrid);btn.setAttribute('aria-pressed',String(showUploadGrid));
+    drawUploadGridOverlayOnCanvas();
+  });
+
+  $('btn-to-preview-draw').addEventListener('click',()=>{
+    if(chosenSlot===null){const fe=firstEmpty();if(fe<0){showInlineError('checkout-error','All squares are claimed!');return;}chosenSlot=fe;}
+    if(!commitBlock(chosenSlot,blockCols,blockRows)){
+      const bSlots=getBlockSlots(chosenSlot,blockCols,blockRows);
+      if(!bSlots){showInlineError('draw-desc-err','Block extends outside the grid. Try a different starting square.');return;}
+      showInlineError('draw-desc-err','Part of this block is already claimed. Try a different position.');return;
+    }
+    showStep(1);
+  });
+  $('btn-to-preview-upload').addEventListener('click',()=>{
+    if(!cropImg.src||!cropImg.naturalWidth){showInlineError('upload-file-err','Please upload an image first.');return;}
+    if(chosenSlot===null){const fe=firstEmpty();if(fe<0){showInlineError('upload-file-err','All squares are claimed!');return;}chosenSlot=fe;}
+    if(!commitBlock(chosenSlot,blockCols,blockRows)){
+      const bSlots=getBlockSlots(chosenSlot,blockCols,blockRows);
+      if(!bSlots){showInlineError('upload-file-err','Block extends outside the grid. Try a different starting square.');return;}
+      showInlineError('upload-file-err','Part of this block is already claimed. Try a different position.');return;
+    }
+    showStep(1);
+  });
+  $('btn-step1-back').addEventListener('click',()=>showStep(0));
+
+  previewGridCanvas.addEventListener('click',previewGridClick);
+  $('prev-up').addEventListener('click',()=>shiftPreviewView(0,-1));
+  $('prev-down').addEventListener('click',()=>shiftPreviewView(0,1));
+  $('prev-left').addEventListener('click',()=>shiftPreviewView(-1,0));
+  $('prev-right').addEventListener('click',()=>shiftPreviewView(1,0));
+
+  slotNumberInput.addEventListener('change',()=>{const v=+slotNumberInput.value;if(!trySelectSlot(v-1)&&chosenSlot!==null)slotNumberInput.value=chosenSlot+1;});
+  slotNumberInput.addEventListener('keydown',e=>{if(e.key==='Enter'){const v=+slotNumberInput.value;if(!trySelectSlot(v-1)&&chosenSlot!==null)slotNumberInput.value=chosenSlot+1;}});
+  btnGotoEmpty.addEventListener('click',()=>{const fe=firstEmpty();if(fe>=0)trySelectSlot(fe);});
+
+  previewMMCanvas.addEventListener('mousedown',pmMinimapDown);
+  previewMMCanvas.addEventListener('click',pmMinimapClick);
+
+  [$('draw-url'),$('upload-url')].forEach(inp=>{
+    inp.addEventListener('blur',()=>{const errId=inp.id==='draw-url'?'draw-url-err':'upload-url-err';const err=validateUrl(inp.value);showInlineError(errId,err||'');if(err)inp.classList.add('field-error');else inp.classList.remove('field-error');});
+    inp.addEventListener('input',()=>{const errId=inp.id==='draw-url'?'draw-url-err':'upload-url-err';showInlineError(errId,'');inp.classList.remove('field-error');});
+  });
+
+  cb1.addEventListener('change',checkReady);cb2.addEventListener('change',checkReady);
+  donationInput.addEventListener('input',updateTotal);
+  submitBtn.addEventListener('click',submitSquare);
+
+  window.addEventListener('resize',()=>{drawRectCache=null;clearTimeout(window._rt);window._rt=setTimeout(()=>{drawSVCanvas();drawSpectrumBar();},120);});
+}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+
+})();</script>
+
+</body></html>
