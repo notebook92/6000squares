@@ -909,7 +909,7 @@ async function pollForConflicts(){
     for(const claim of claimList){
       const i=claim.slot;
       if(squares[i])continue; // already known
-      squares[i]={imageData:null,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now()};
+      squares[i]={imageData:null,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now(),anchorSlot:claim.anchor_slot??i,blockCols:claim.block_cols||1,blockRows:claim.block_rows||1};
       renderSquareToCanvas(i);
       fetch(`${API_BASE}/api/image/${i}`).then(r=>r.ok?r.blob():null).then(blob=>{
         if(!blob||!squares[i])return;
@@ -1135,7 +1135,40 @@ function drawEmptySquare(i){const{row,col}=slotRC(i),dx=col*SQ,dy=row*SQ;mosaicC
 
 function initMosaicCanvas(){mosaicCanvas.width=GRID_W;mosaicCanvas.height=GRID_H;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(0,0,GRID_W,GRID_H);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5;for(let c=0;c<=COLS;c++){mosaicCtx.beginPath();mosaicCtx.moveTo(c*SQ,0);mosaicCtx.lineTo(c*SQ,GRID_H);mosaicCtx.stroke();}for(let r=0;r<=ROWS;r++){mosaicCtx.beginPath();mosaicCtx.moveTo(0,r*SQ);mosaicCtx.lineTo(GRID_W,r*SQ);mosaicCtx.stroke();}for(let i=0;i<TOTAL;i++)drawEmptySquare(i);}
 
-function renderSquareToCanvas(i){const sq=squares[i];const{row,col}=slotRC(i);const dx=col*SQ,dy=row*SQ;if(!sq){drawEmptySquare(i);return Promise.resolve();}if(sq._bmp){mosaicCtx.drawImage(sq._bmp,dx,dy,SQ,SQ);return Promise.resolve();}return new Promise(res=>{const img=new Image();img.onload=()=>{if(typeof createImageBitmap!=='undefined'){createImageBitmap(img,{resizeWidth:SQ,resizeHeight:SQ,resizeQuality:'medium'}).then(bmp=>{sq._bmp=bmp;mosaicCtx.drawImage(bmp,dx,dy,SQ,SQ);res();}).catch(()=>{mosaicCtx.drawImage(img,dx,dy,SQ,SQ);res();});}else{mosaicCtx.drawImage(img,dx,dy,SQ,SQ);res();}};img.onerror=res;img.src=sq.imageData;});}
+// Squares that belong to a multi-square block all share ONE uploaded image
+// (sized blockCols*SQ x blockRows*SQ). Each square crops its own SQ x SQ
+// region out of that shared image based on its offset from the block's
+// anchor slot, instead of assuming the whole image is just this one square.
+function renderSquareToCanvas(i){
+  const sq=squares[i];const{row,col}=slotRC(i);const dx=col*SQ,dy=row*SQ;
+  if(!sq){drawEmptySquare(i);return Promise.resolve();}
+  const bc=sq.blockCols||1,br=sq.blockRows||1;
+  let sx=0,sy=0,sw=null,sh=null; // source crop rect within the shared image; sw/sh resolved once natural size is known
+  if(bc>1||br>1){
+    const anchor=sq.anchorSlot??i;
+    const{row:ar,col:ac}=slotRC(anchor);
+    const offCol=col-ac,offRow=row-ar;
+    sq._cropFrac={offCol,offRow,bc,br}; // fraction-based crop, resolved against actual image px below
+  }
+  if(sq._bmp){
+    if(sq._cropFrac){const{offCol,offRow,bc,br}=sq._cropFrac;const cw=sq._bmp.width/bc,ch=sq._bmp.height/br;mosaicCtx.drawImage(sq._bmp,offCol*cw,offRow*ch,cw,ch,dx,dy,SQ,SQ);}
+    else{mosaicCtx.drawImage(sq._bmp,dx,dy,SQ,SQ);}
+    return Promise.resolve();
+  }
+  return new Promise(res=>{
+    const img=new Image();
+    img.onload=()=>{
+      const draw=(source)=>{
+        if(sq._cropFrac){const{offCol,offRow,bc,br}=sq._cropFrac;const cw=source.width/bc,ch=source.height/br;mosaicCtx.drawImage(source,offCol*cw,offRow*ch,cw,ch,dx,dy,SQ,SQ);}
+        else{mosaicCtx.drawImage(source,dx,dy,SQ,SQ);}
+      };
+      if(typeof createImageBitmap!=='undefined'){
+        createImageBitmap(img).then(bmp=>{sq._bmp=bmp;draw(bmp);res();}).catch(()=>{draw(img);res();});
+      }else{draw(img);res();}
+    };
+    img.onerror=res;img.src=sq.imageData;
+  });
+}
 
 async function loadAllClaimed(){const cl=[];for(let i=0;i<TOTAL;i++)if(squares[i])cl.push(i);const B=50;for(let b=0;b<cl.length;b+=B)await Promise.all(cl.slice(b,b+B).map(renderSquareToCanvas));}
 
@@ -1155,7 +1188,7 @@ async function fetchBoard(){
           if(!imgRes.ok)return;
           const blob=await imgRes.blob();
           const dataUrl=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob);});
-          squares[i]={imageData:dataUrl,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now()};
+          squares[i]={imageData:dataUrl,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now(),anchorSlot:claim.anchor_slot??i,blockCols:claim.block_cols||1,blockRows:claim.block_rows||1};
         }catch(_){}
       }));
     }
@@ -1182,14 +1215,32 @@ function handleSuccessRedirect(){
   const params=new URLSearchParams(window.location.search);
   if(params.get('success')==='1'){
     const slot=params.get('slot')?parseInt(params.get('slot'),10):-1;
+    const bc=Math.max(1,parseInt(params.get('block_cols'),10)||1);
+    const br=Math.max(1,parseInt(params.get('block_rows'),10)||1);
     window.history.replaceState({},document.title,window.location.pathname);
     setTimeout(async()=>{
-      showToast('🎉 Payment successful! Your square is now live.');
+      const count=bc*br;
+      showToast(count>1?`🎉 Payment successful! Your ${count} squares are now live.`:'🎉 Payment successful! Your square is now live.');
       await fetchBoard();
       if(!isNaN(slot)&&slot>=0&&slot<TOTAL){
-        const{row,col}=slotRC(slot);
-        scrollToGridPosition(col*SQ+SQ/2,row*SQ+SQ/2);
-        setTimeout(()=>{const dx=col*SQ,dy=row*SQ;let f=0;const iv=setInterval(()=>{if(f>6){clearInterval(iv);renderSquareToCanvas(slot);return;}mosaicCtx.fillStyle=(f%2)?'rgba(200,149,10,0.7)':'rgba(200,149,10,0)';mosaicCtx.fillRect(dx,dy,SQ,SQ);f++;},150);},300);
+        const{row:ar,col:ac}=slotRC(slot);
+        // Flash every square in the block, not just the anchor.
+        const blockSlots=[];
+        for(let r=0;r<br;r++)for(let c=0;c<bc;c++){const rr=ar+r,cc=ac+c;if(rr<75&&cc<80)blockSlots.push(rcSlot(rr,cc));}
+        const centerCol=ac+bc/2,centerRow=ar+br/2;
+        scrollToGridPosition(centerCol*SQ,centerRow*SQ);
+        setTimeout(()=>{
+          let f=0;
+          const iv=setInterval(()=>{
+            if(f>6){clearInterval(iv);blockSlots.forEach(renderSquareToCanvas);return;}
+            for(const s of blockSlots){
+              const{row,col}=slotRC(s);
+              mosaicCtx.fillStyle=(f%2)?'rgba(200,149,10,0.7)':'rgba(200,149,10,0)';
+              mosaicCtx.fillRect(col*SQ,row*SQ,SQ,SQ);
+            }
+            f++;
+          },150);
+        },300);
       }
     },700);
   }
