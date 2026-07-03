@@ -107,7 +107,7 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .upload-controls input[type="range"]{width:80px;accent-color:var(--red)}
 .upload-controls button{font-size:11px;padding:4px 10px;border:1px solid #ccc;background:#f5f5f5;border-radius:3px;cursor:pointer}
 .upload-controls button:hover{background:#e8e8e8}
-#upload-zone{border:2px dashed #ccc;border-radius:6px;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;background:#fafafa;transition:all .15s}
+#upload-zone{border:2px dashed #ccc;border-radius:6px;width:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;background:#fafafa;transition:all .15s;text-align:center}
 #upload-zone:hover,.drag-over{border-color:var(--red)!important;background:#fff5f5!important}
 #upload-zone p{font-size:11px;color:var(--red)}
 #upload-zone strong{font-size:15px;color:#555;font-weight:700;letter-spacing:1px}
@@ -189,6 +189,9 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 @media(prefers-reduced-motion:reduce){.spinner,.btn-submit-final .btn-spinner{animation:none}*{transition:none!important}}
 @media(max-width:700px){
   header{padding:10px 14px}
+  .header-right{display:contents}
+  .sq-count-pill{order:1}
+  .btn-claim{order:2;flex-basis:100%}
   .header-slogan{position:static;transform:none;flex-basis:100%;order:3;text-align:center;white-space:normal;font-size:11px;letter-spacing:.8px;margin-top:4px}
   #main-layout{flex-direction:column;align-items:center;padding:10px}
   .step0-body{grid-template-columns:1fr}
@@ -347,20 +350,20 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
           </div>
 
           <div class="step0-right">
-            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. Violations will be removed.
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. <strong>Violations will be removed.</strong>
 </div>
             <div class="rules-footnote">*A user can upload more than once, but each upload must look significantly different.</div>
             <div>
               <label class="field-label" for="draw-desc">Image Description*</label>
-              <input type="text" id="draw-desc" class="field-input" maxlength="160" placeholder="e.g. Eagle over the Rockies — Jake, Texas" aria-describedby="draw-desc-err">
+              <input type="text" id="draw-desc" class="field-input" maxlength="160" placeholder="e.g. Click here to check us out" aria-describedby="draw-desc-err">
               <div class="inline-error" id="draw-desc-err" role="alert"></div>
             </div>
             <div>
               <label class="field-label" for="draw-url">URL**</label>
-              <input type="text" id="draw-url" class="field-input" maxlength="300" placeholder="https://yourlink.com" aria-describedby="draw-url-err">
+              <input type="text" id="draw-url" class="field-input" maxlength="300" placeholder="yourlink.com" aria-describedby="draw-url-err">
               <div class="inline-error" id="draw-url-err" role="alert"></div>
             </div>
-            <div class="field-footnotes">*Description: Can be seen when hovering over a square with your mouse on desktop.<br><br>**URL: Will be embedded into your image upon revision. When image is clicked users will be sent to the given link.</div>
+            <div class="field-footnotes">*Description: Add a message that people will see when they hover over your square(s).<br><br>**URL: Add a link that people will be taken to when they click on your square(s).</div>
           </div>
         </div>
         <div class="step0-footer"><button class="btn-primary" id="btn-to-preview-draw">Preview →</button></div>
@@ -405,19 +408,19 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
           </div>
 
           <div class="step0-right">
-            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. Violations will be removed.</div>
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. <strong>Violations will be removed.</strong></div>
             <div class="rules-footnote">A user can upload more than once, but each upload must look significantly different.</div>
             <div>
               <label class="field-label" for="upload-desc">Image Description*</label>
-              <input type="text" id="upload-desc" class="field-input" maxlength="160" placeholder="e.g. Sunset at the Grand Canyon — Maria, Arizona" aria-describedby="upload-desc-err">
+              <input type="text" id="upload-desc" class="field-input" maxlength="160" placeholder="e.g. Click here to check us out" aria-describedby="upload-desc-err">
               <div class="inline-error" id="upload-desc-err" role="alert"></div>
             </div>
             <div>
               <label class="field-label" for="upload-url">URL**</label>
-              <input type="text" id="upload-url" class="field-input" maxlength="300" placeholder="https://yourlink.com" aria-describedby="upload-url-err">
+              <input type="text" id="upload-url" class="field-input" maxlength="300" placeholder="yourlink.com" aria-describedby="upload-url-err">
               <div class="inline-error" id="upload-url-err" role="alert"></div>
             </div>
-            <div class="field-footnotes">*Description: Can be seen when hovering over a square with your mouse on desktop.<br><br>**URL: Will be embedded into your image upon revision. When image is clicked users will be sent to the given link.</div>
+            <div class="field-footnotes">*Description: Add a message that people will see when they hover over your square(s).<br><br>**URL: Add a link that people will be taken to when they click on your square(s).</div>
           </div>
         </div>
         <div class="step0-footer"><button class="btn-primary" id="btn-to-preview-upload">Preview →</button></div>
@@ -456,7 +459,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
       <div class="slot-taken-msg" id="slot-taken-msg" role="alert">Part of this block is taken — try a different position.</div>
       <button class="btn-goto-empty" id="btn-goto-empty">Go to earliest unclaimed square</button>
 
-      <div class="preview-info-box" id="preview-info-box">Your block covers <strong>45×30px</strong> on the mosaic (6 squares). Image will fill the block shape.</div>
+      <div class="preview-info-box" id="preview-info-box">Your block covers <strong>45×30px</strong> on the mosaic (6 squares). Preview is an enlarged representation.</div>
 
       <div class="payment-section">
         <h3>Payment</h3>
@@ -662,7 +665,8 @@ function slotRC(i){return{row:(i/COLS)|0,col:i%COLS};}
 function rcSlot(r,c){return r*COLS+c;}
 function claimedCount(){let c=0;for(let i=0;i<TOTAL;i++)if(squares[i])c++;return c;}
 function firstEmpty(){for(let i=0;i<TOTAL;i++)if(!squares[i])return i;return -1;}
-function validateUrl(str){if(!str||!str.trim())return null;try{const u=new URL(str.trim());if(u.protocol!=='https:'&&u.protocol!=='http:')return 'URL must start with https:// or http://';return null;}catch(_){return 'Please enter a valid URL (e.g. https://example.com)';}}
+function normalizeUrl(str){let v=(str||'').trim();if(v&&!/^https?:\/\//i.test(v))v='https://'+v;return v;}
+function validateUrl(str){if(!str||!str.trim())return null;const v=normalizeUrl(str);try{const u=new URL(v);if(u.protocol!=='https:'&&u.protocol!=='http:')return 'Please enter a valid URL';return null;}catch(_){return 'Please enter a valid URL (e.g. yourlink.com)';}}
 
 function loadState(){try{const s=localStorage.getItem('sixthousandsquares_v9');if(!s)return;const arr=JSON.parse(s);for(const e of arr)if(e.index>=0&&e.index<TOTAL)squares[e.index]=e.data;}catch(_){}}
 function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{const c=[];for(let i=0;i<TOTAL;i++)if(squares[i])c.push({index:i,data:{imageData:squares[i].imageData,desc:squares[i].desc,url:squares[i].url,timestamp:squares[i].timestamp}});localStorage.setItem('sixthousandsquares_v9',JSON.stringify(c));}catch(_){}},500);}
@@ -1015,7 +1019,7 @@ function updateModalTitle(){
   const payRowLabel=$('pay-row-label');
   if(payRowLabel)payRowLabel.textContent=chosenBlock.count===1?'Claim a square':`Claim ${chosenBlock.count} squares (${chosenBlock.cols}×${chosenBlock.rows})`;
   const piBox=$('preview-info-box');
-  if(piBox){const pixW=bc*SQ,pixH=br*SQ;piBox.innerHTML=`Your block covers <strong>${pixW}×${pixH}px</strong> on the mosaic (${count} square${count>1?'s':''}). Image will fill the block shape.`;}
+  if(piBox){const pixW=bc*SQ,pixH=br*SQ;piBox.innerHTML=`Your block covers <strong>${pixW}×${pixH}px</strong> on the mosaic (${count} square${count>1?'s':''}). Preview is an enlarged representation.`;}
   updateTotal();
 }
 
@@ -1247,7 +1251,7 @@ function buildPreviewStep(){
   currentImageData=captureImageData();
   currentPreviewImageData=captureImageData(PREVIEW_RES_MULT);
   currentDesc=(activeTab==='draw'?drawDescEl.value:uploadDescEl.value).trim();
-  currentUrl=(activeTab==='draw'?$('draw-url').value:$('upload-url').value).trim();
+  currentUrl=normalizeUrl(activeTab==='draw'?$('draw-url').value:$('upload-url').value);
   previewSelected=chosenSlot;
   const{row,col}=slotRC(chosenSlot);
   previewViewCol=clamp(col-Math.floor(PREV_COLS/2),0,COLS-PREV_COLS);
