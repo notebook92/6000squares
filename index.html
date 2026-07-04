@@ -123,6 +123,7 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .step0-right{display:flex;flex-direction:column;gap:10px}
 .rules-box{background:#fff8e1;border:1px solid #ffe082;border-radius:var(--radius);padding:9px 11px;font-size:11px;color:#5a4000;line-height:1.7}
 .rules-box strong{display:block;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--red);margin-bottom:3px}
+.rules-box b.rules-emphasis{font-weight:700;color:inherit;font-size:inherit;text-transform:none;letter-spacing:normal;display:inline}
 .rules-footnote{font-size:10px;color:#888;line-height:1.5}
 .field-label{font-size:11px;font-weight:700;color:var(--navy);margin-bottom:3px;display:block}
 .field-input{width:100%;border:1.5px solid #ddd;border-radius:var(--radius);padding:7px 9px;font-size:12px;font-family:'Inter',sans-serif;color:#333;outline:none;transition:border-color .15s}
@@ -350,12 +351,12 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
           </div>
 
           <div class="step0-right">
-            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. <strong>Violations will be removed.</strong>
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. <b class="rules-emphasis">Violations will be removed.</b>
 </div>
             <div class="rules-footnote">*A user can upload more than once, but each upload must look significantly different.</div>
             <div>
               <label class="field-label" for="draw-desc">Image Description*</label>
-              <input type="text" id="draw-desc" class="field-input" maxlength="160" placeholder="e.g. Click here to check us out" aria-describedby="draw-desc-err">
+              <input type="text" id="draw-desc" class="field-input" maxlength="160" placeholder="e.g. Click here to check us out!" aria-describedby="draw-desc-err">
               <div class="inline-error" id="draw-desc-err" role="alert"></div>
             </div>
             <div>
@@ -408,11 +409,11 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
           </div>
 
           <div class="step0-right">
-            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. <strong>Violations will be removed.</strong></div>
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. <b class="rules-emphasis">Violations will be removed.</b></div>
             <div class="rules-footnote">A user can upload more than once, but each upload must look significantly different.</div>
             <div>
               <label class="field-label" for="upload-desc">Image Description*</label>
-              <input type="text" id="upload-desc" class="field-input" maxlength="160" placeholder="e.g. Click here to check us out" aria-describedby="upload-desc-err">
+              <input type="text" id="upload-desc" class="field-input" maxlength="160" placeholder="e.g. Click here to check us out!" aria-describedby="upload-desc-err">
               <div class="inline-error" id="upload-desc-err" role="alert"></div>
             </div>
             <div>
@@ -452,14 +453,14 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
       </div>
 
       <div class="preview-pos-row">
-        Your square: <strong id="sq-position-label">slots #1065–#1076 — top-left at row 14, col 25</strong>
-        <span>Click empty squares or type a number:</span>
+        Your space originates from <strong id="sq-position-label">square #1065 — top-left at row 14, col 25</strong>
+        <span>Click empty squares or type a number to change your position:</span>
         <input type="number" id="slot-number-input" class="slot-input" min="1" max="6000" aria-label="Square number">
       </div>
       <div class="slot-taken-msg" id="slot-taken-msg" role="alert">Part of this block is taken — try a different position.</div>
       <button class="btn-goto-empty" id="btn-goto-empty">Go to earliest unclaimed square</button>
 
-      <div class="preview-info-box" id="preview-info-box">Your block covers <strong>45×30px</strong> on the mosaic (6 squares). Preview is an enlarged representation.</div>
+      <div class="preview-info-box" id="preview-info-box">Your space covers <strong>45×30px</strong> on the grid (6 squares). The preview is an enlarged representation.</div>
 
       <div class="payment-section">
         <h3>Payment</h3>
@@ -616,6 +617,10 @@ const customSizeOverlay=$('custom-size-overlay'),customSizeGrid=$('custom-size-g
 const customSizeReadout=$('custom-size-readout'),customSizePrice=$('custom-size-price');
 
 const squares=new Array(TOTAL).fill(null);
+// Slots actively held by someone else's in-progress selection/checkout (not yet paid).
+// Rendered as animated diagonal stripes and blocked from being clicked/claimed.
+const reservedSlots=new Set();
+let reservedStripeAnim=null;
 let activeTab='draw',drawTool='pen',isDrawing=false,chosenSlot=null,currentStep=0;
 let blockCols=1,blockRows=1;
 let chosenBlock=Object.freeze({cols:1,rows:1,count:1,price:3,slots:[]});
@@ -664,7 +669,7 @@ function clearInlineErrors(){document.querySelectorAll('.inline-error').forEach(
 function slotRC(i){return{row:(i/COLS)|0,col:i%COLS};}
 function rcSlot(r,c){return r*COLS+c;}
 function claimedCount(){let c=0;for(let i=0;i<TOTAL;i++)if(squares[i])c++;return c;}
-function firstEmpty(){for(let i=0;i<TOTAL;i++)if(!squares[i])return i;return -1;}
+function firstEmpty(){for(let i=0;i<TOTAL;i++)if(!squares[i]&&!reservedSlots.has(i))return i;return -1;}
 function normalizeUrl(str){let v=(str||'').trim();if(v&&!/^https?:\/\//i.test(v))v='https://'+v;return v;}
 function validateUrl(str){if(!str||!str.trim())return null;const v=normalizeUrl(str);try{const u=new URL(v);if(u.protocol!=='https:'&&u.protocol!=='http:')return 'Please enter a valid URL';return null;}catch(_){return 'Please enter a valid URL (e.g. yourlink.com)';}}
 
@@ -919,13 +924,30 @@ async function pollForConflicts(){
       }).catch(()=>{});
       if(chosenBlock&&chosenBlock.slots&&chosenBlock.slots.includes(i))conflict=true;
     }
+    applyReservedSlots(data.reservedSlots||[]);
     if(conflict)handleLiveConflict();
     else if(currentStep===1)drawPreviewGrid();
   }catch(_){}
 }
+
+// Keeps the homepage grid's reserved-square stripes fresh even when the
+// claim modal is closed (someone elsewhere may start/finish a checkout).
+let reservedPollId=null;
+function startReservedPolling(){
+  if(reservedPollId)return;
+  reservedPollId=setInterval(async()=>{
+    if(!isUsingRealBackend||claimOverlay.classList.contains('open'))return; // modal has its own faster poll
+    try{
+      const res=await fetch(`${API_BASE}/api/board`);
+      if(!res.ok)return;
+      const data=await res.json();
+      applyReservedSlots(data.reservedSlots||[]);
+    }catch(_){}
+  },8000);
+}
 function handleLiveConflict(){
   const count=chosenBlock?chosenBlock.count:1;
-  const msg=count===1?'Someone just claimed this square — please pick another.':'Someone just claimed part of your selected squares — please pick another spot.';
+  const msg=count===1?'This square is taken. Please choose another.':'Part of this selection is taken. Please choose another position.';
   if(currentStep===1){
     drawPreviewGrid();updatePrevMinimap();
     slotTakenMsg.textContent=msg;
@@ -1019,7 +1041,7 @@ function updateModalTitle(){
   const payRowLabel=$('pay-row-label');
   if(payRowLabel)payRowLabel.textContent=chosenBlock.count===1?'Claim a square':`Claim ${chosenBlock.count} squares (${chosenBlock.cols}×${chosenBlock.rows})`;
   const piBox=$('preview-info-box');
-  if(piBox){const pixW=bc*SQ,pixH=br*SQ;piBox.innerHTML=`Your block covers <strong>${pixW}×${pixH}px</strong> on the mosaic (${count} square${count>1?'s':''}). Preview is an enlarged representation.`;}
+  if(piBox){const pixW=bc*SQ,pixH=br*SQ;piBox.innerHTML=`Your space covers <strong>${pixW}×${pixH}px</strong> on the grid (${count} square${count>1?'s':''}). The preview is an enlarged representation.`;}
   updateTotal();
 }
 
@@ -1133,6 +1155,50 @@ function clearUpload(){uploadFileEl.value='';cropImg.src='';cropUI.style.display
 
 function drawEmptySquare(i){const{row,col}=slotRC(i),dx=col*SQ,dy=row*SQ;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(dx,dy,SQ,SQ);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5;mosaicCtx.strokeRect(dx+0.25,dy+0.25,SQ-0.5,SQ-0.5);mosaicCtx.fillStyle='rgba(180,180,180,0.55)';mosaicCtx.font=`${SQ*0.42}px Inter,sans-serif`;mosaicCtx.textAlign='center';mosaicCtx.textBaseline='middle';mosaicCtx.fillText(i+1,dx+SQ/2,dy+SQ/2);}
 
+// Draws animated diagonal stripes (////) over a single SQxSQ cell to mark it
+// as reserved (mid-selection/checkout by someone else). `phase` shifts the
+// stripe offset over time so repeated calls from the animation loop create
+// a moving-stripe effect, similar to a CSS `background-position` animation.
+function drawReservedStripeCell(ctx,dx,dy,size,phase){
+  ctx.save();
+  ctx.beginPath();ctx.rect(dx,dy,size,size);ctx.clip();
+  ctx.fillStyle='#fdf1d8';ctx.fillRect(dx,dy,size,size);
+  const stripeW=Math.max(3,size*0.22),gap=stripeW;
+  ctx.strokeStyle='rgba(200,149,10,0.55)';ctx.lineWidth=stripeW;
+  const span=size*2;
+  for(let off=-span;off<span*2;off+=stripeW+gap){
+    const x=dx+((off+phase)%span);
+    ctx.beginPath();
+    ctx.moveTo(x,dy+size);
+    ctx.lineTo(x+size,dy);
+    ctx.stroke();
+  }
+  ctx.restore();
+  ctx.strokeStyle='rgba(200,149,10,0.5)';ctx.lineWidth=0.75;
+  ctx.strokeRect(dx+0.4,dy+0.4,size-0.8,size-0.8);
+}
+function drawReservedSquare(i){const{row,col}=slotRC(i);drawReservedStripeCell(mosaicCtx,col*SQ,row*SQ,SQ,reservedStripePhase);}
+let reservedStripePhase=0;
+function startReservedStripeAnimation(){
+  if(reservedStripeAnim)return;
+  const step=()=>{
+    reservedStripePhase=(reservedStripePhase+0.6)%(SQ*2);
+    for(const i of reservedSlots)if(!squares[i])drawReservedSquare(i);
+    if(currentStep===1)drawPreviewGrid();
+    reservedStripeAnim=reservedSlots.size?requestAnimationFrame(step):null;
+  };
+  reservedStripeAnim=requestAnimationFrame(step);
+}
+function applyReservedSlots(newSet){
+  const prev=new Set(reservedSlots);
+  reservedSlots.clear();
+  for(const s of newSet)reservedSlots.add(s);
+  // Redraw anything that changed reserved-state either way.
+  for(const s of prev)if(!reservedSlots.has(s))renderSquareToCanvas(s);
+  for(const s of reservedSlots)if(!prev.has(s)&&!squares[s])drawReservedSquare(s);
+  if(reservedSlots.size)startReservedStripeAnimation();
+}
+
 function initMosaicCanvas(){mosaicCanvas.width=GRID_W;mosaicCanvas.height=GRID_H;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(0,0,GRID_W,GRID_H);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5;for(let c=0;c<=COLS;c++){mosaicCtx.beginPath();mosaicCtx.moveTo(c*SQ,0);mosaicCtx.lineTo(c*SQ,GRID_H);mosaicCtx.stroke();}for(let r=0;r<=ROWS;r++){mosaicCtx.beginPath();mosaicCtx.moveTo(0,r*SQ);mosaicCtx.lineTo(GRID_W,r*SQ);mosaicCtx.stroke();}for(let i=0;i<TOTAL;i++)drawEmptySquare(i);}
 
 // Squares that belong to a multi-square block all share ONE uploaded image
@@ -1195,6 +1261,8 @@ async function fetchBoard(){
     isUsingRealBackend=true;
     if(countDisplay)countDisplay.textContent=data.count||claimedCount();
     await loadAllClaimed();
+    applyReservedSlots(data.reservedSlots||[]);
+    startReservedPolling();
     return true;
   }catch(e){
     console.warn('[6000Squares] Using local demo mode:',e.message);
@@ -1258,7 +1326,7 @@ function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i===toolti
 
 function vpMouseLeave(){tooltipEl.style.display='none';tooltipSlot=-1;}
 
-function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i])return;chosenSlot=i;openClaimModal(i);}
+function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i])return;if(reservedSlots.has(i)){showToast('This space is reserved');return;}chosenSlot=i;openClaimModal(i);}
 
 function trapFocus(e){
   if(e.key!=='Tab')return;
@@ -1357,21 +1425,20 @@ function drawPreviewGrid(){
       }
     }else if(squares[i]){
       previewGridCtx.fillStyle='#eee';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);drawCellImage(squares[i],x,y);
+    }else if(reservedSlots.has(i)){
+      drawReservedStripeCell(previewGridCtx,x,y,CELL_PX,reservedStripePhase);
     }else{
       previewGridCtx.fillStyle='#f5f5f5';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);previewGridCtx.fillStyle='rgba(180,180,180,.55)';previewGridCtx.font='11px Inter,sans-serif';previewGridCtx.textAlign='center';previewGridCtx.textBaseline='middle';previewGridCtx.fillText(i+1,x+CELL_PX/2,y+CELL_PX/2);previewGridCtx.strokeStyle='rgba(180,180,180,.6)';previewGridCtx.lineWidth=0.5;previewGridCtx.strokeRect(x+0.25,y+0.25,CELL_PX-0.5,CELL_PX-0.5);
     }
   }}
 }
 
-function previewGridClick(e){const{x,y}=canvasClientToLocal(previewGridCanvas,e.clientX,e.clientY);const c=Math.floor(x/CELL_PX),row=Math.floor(y/CELL_PX);if(c<0||c>=PREV_COLS||row<0||row>=PREV_ROWS)return;const i=rcSlot(previewViewRow+row,previewViewCol+c);if(!squares[i])trySelectSlot(i);}
+function previewGridClick(e){const{x,y}=canvasClientToLocal(previewGridCanvas,e.clientX,e.clientY);const c=Math.floor(x/CELL_PX),row=Math.floor(y/CELL_PX);if(c<0||c>=PREV_COLS||row<0||row>=PREV_ROWS)return;const i=rcSlot(previewViewRow+row,previewViewCol+c);if(squares[i])return;if(reservedSlots.has(i)){showToast('This space is reserved');return;}trySelectSlot(i);}
 function shiftPreviewView(dc,dr){previewViewCol=clamp(previewViewCol+dc,0,COLS-PREV_COLS);previewViewRow=clamp(previewViewRow+dr,0,ROWS-PREV_ROWS);drawPreviewGrid();updatePrevMinimap();}
 function updatePosLabel(){
   if(chosenSlot===null){posLabel.textContent='—';return;}
   const{row,col}=slotRC(chosenSlot);
-  const count=blockCols*blockRows;
-  posLabel.textContent=count===1
-    ?`slot #${chosenSlot+1} (row ${row+1}, col ${col+1})`
-    :`slots #${chosenSlot+1}–#${chosenSlot+count} — top-left at row ${row+1}, col ${col+1}`;
+  posLabel.textContent=`square #${chosenSlot+1} — ${blockCols}×${blockRows} at row ${row+1}, col ${col+1}`;
 }
 
 function updatePrevMinimap(){const cw=previewMMCanvas.width,ch=previewMMCanvas.height;const scX=cw/GRID_W,scY=ch/GRID_H;previewMMCtx.fillStyle='#e8e8e8';previewMMCtx.fillRect(0,0,cw,ch);for(let i=0;i<TOTAL;i++){if(!squares[i])continue;const{row,col}=slotRC(i);previewMMCtx.fillStyle='#C8950A';previewMMCtx.fillRect(col*SQ*scX,row*SQ*scY,Math.max(1,SQ*scX),Math.max(1,SQ*scY));}if(chosenSlot!==null){const{row,col}=slotRC(chosenSlot);const bw=blockCols*SQ*scX,bh=blockRows*SQ*scY;previewMMCtx.fillStyle='rgba(178,34,52,0.35)';previewMMCtx.fillRect(col*SQ*scX,row*SQ*scY,bw,bh);const dotX=col*SQ*scX+bw/2,dotY=row*SQ*scY+bh/2;previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.fillStyle='#B22234';previewMMCtx.fill();previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.strokeStyle='#fff';previewMMCtx.lineWidth=1.5;previewMMCtx.stroke();}}
@@ -1387,10 +1454,10 @@ function trySelectSlot(newSlot){
     slotTakenMsg.textContent='Block extends outside the grid — pick a different position.';
     slotTakenMsg.classList.add('show');btnGotoEmpty.classList.add('show');return false;
   }
-  const takenSlot=bSlots.find(s=>squares[s]);
+  const takenSlot=bSlots.find(s=>squares[s]||reservedSlots.has(s));
   if(takenSlot!==undefined){
     const count=blockCols*blockRows;
-    slotTakenMsg.textContent=count===1?'Sorry, this square is taken — please pick another.':'Part of this block is taken — try a different position.';
+    slotTakenMsg.textContent=count===1?'This square is taken. Please choose another.':'Part of this block is taken. Please choose another position.';
     slotTakenMsg.classList.add('show');btnGotoEmpty.classList.add('show');return false;
   }
   slotTakenMsg.classList.remove('show');btnGotoEmpty.classList.remove('show');
@@ -1416,8 +1483,8 @@ async function submitSquare(){
   if(cb.anchor!==chosenSlot){showInlineError('checkout-error','Selection mismatch. Please re-select your block.');return;}
   if(!cb.slots||cb.slots.length!==cb.count){showInlineError('checkout-error','Block data is inconsistent. Please re-select your block.');return;}
   if(cb.price!==cb.count*PRICE_PER_SQUARE){showInlineError('checkout-error','Price tampered. Please reload the page.');return;}
-  const takenSlot=cb.slots.find(s=>squares[s]);
-  if(takenSlot!==undefined){showInlineError('checkout-error','Part of this block was just claimed by someone else. Please pick another position.');handleLiveConflict();return;}
+  const takenSlot=cb.slots.find(s=>squares[s]||reservedSlots.has(s));
+  if(takenSlot!==undefined){showInlineError('checkout-error','This square is taken. Please choose another.');handleLiveConflict();return;}
   const urlErr=validateUrl(currentUrl);
   if(urlErr){showInlineError('checkout-error',urlErr);return;}
   submitBtn.disabled=true;submitBtn.setAttribute('aria-disabled','true');submitBtn.classList.add('loading');submitBtnLabel.textContent='Reserving…';
@@ -1437,7 +1504,9 @@ async function submitSquare(){
     else{showInlineError('checkout-error','No checkout URL returned. Please contact support.');}
   }catch(err){
     console.error('submitSquare error:',err);
-    showInlineError('checkout-error','Network error. Please check your connection and try again.');
+    const msg=(err&&err.message)?err.message:'Network error. Please check your connection and try again.';
+    showInlineError('checkout-error',msg);
+    if(/taken|reserved|claimed/i.test(msg))handleLiveConflict();
   }finally{
     submitBtn.classList.remove('loading');checkReady();submitBtnLabel.textContent='Pay and Submit';
   }
