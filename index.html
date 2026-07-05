@@ -581,11 +581,39 @@ function updatePreviewDims(){
   let cols=Math.min(COLS,Math.max(wantCols,Math.ceil(PREV_BOX_W/cell)));
   let rows=Math.min(ROWS,Math.max(wantRows,Math.ceil(PREV_BOX_H/cell)));
   PREV_COLS=cols;PREV_ROWS=rows;CELL_PX=cell;
-  // Offsets can now be <=0 (grid slightly larger than the box) — that's
-  // intended, it centers the overflow evenly so squares are cut off equally
-  // on both sides instead of leaving a gap on one side.
+  // Offsets are finalized in updatePreviewOffsets() below, which needs to
+  // know previewViewCol/Row (not available the first time this runs) —
+  // seed a centered default here so nothing is undefined before that.
   PREV_OFFX=Math.floor((PREV_BOX_W-cols*cell)/2);
   PREV_OFFY=Math.floor((PREV_BOX_H-rows*cell)/2);
+}
+// Whenever the preview's rendered column/row count doesn't divide evenly
+// into the fixed PREV_BOX_W x PREV_BOX_H box, some overflow has to be
+// trimmed from somewhere. Trimming it evenly off both sides (the old
+// behavior) chops into the edge column/row whenever the user's view is
+// sitting at the actual boundary of the grid (col 0, or the last column) —
+// so a square the user picked right on the edge of the whole 80x75 grid
+// would render partially cut off in the preview, even though nothing is
+// actually wrong with their selection.
+// Fix: only trim overflow from a side that still has more grid beyond it.
+// If the view is already flush against a grid edge, that edge gets zero
+// trim (offset 0 on the left, or the full negative overflow on the right)
+// so the true boundary square lines up exactly with the preview box's edge
+// and is never clipped. Only when neither side is at a grid edge (or both
+// are, i.e. the whole grid fits) do we fall back to centering the overflow.
+function updatePreviewOffsets(){
+  const overflowX=PREV_COLS*CELL_PX-PREV_BOX_W;
+  const overflowY=PREV_ROWS*CELL_PX-PREV_BOX_H;
+  const atLeft=previewViewCol===0,atRight=(previewViewCol+PREV_COLS)===COLS;
+  const atTop=previewViewRow===0,atBottom=(previewViewRow+PREV_ROWS)===ROWS;
+  if(overflowX<=0){PREV_OFFX=Math.floor((PREV_BOX_W-PREV_COLS*CELL_PX)/2);}
+  else if(atLeft&&!atRight){PREV_OFFX=0;}
+  else if(atRight&&!atLeft){PREV_OFFX=-overflowX;}
+  else{PREV_OFFX=-Math.floor(overflowX/2);}
+  if(overflowY<=0){PREV_OFFY=Math.floor((PREV_BOX_H-PREV_ROWS*CELL_PX)/2);}
+  else if(atTop&&!atBottom){PREV_OFFY=0;}
+  else if(atBottom&&!atTop){PREV_OFFY=-overflowY;}
+  else{PREV_OFFY=-Math.floor(overflowY/2);}
 }
 
 const BLOCK_SHAPES=[
@@ -705,6 +733,20 @@ function claimedCount(){let c=0;for(let i=0;i<TOTAL;i++)if(squares[i])c++;return
 function firstEmpty(){for(let i=0;i<TOTAL;i++)if(!squares[i]&&!reservedSlots.has(i))return i;return -1;}
 function normalizeUrl(str){let v=(str||'').trim();if(v&&!/^https?:\/\//i.test(v))v='https://'+v;return v;}
 function validateUrl(str){if(!str||!str.trim())return null;const v=normalizeUrl(str);try{const u=new URL(v);if(u.protocol!=='https:'&&u.protocol!=='http:')return 'Please enter a valid URL';return null;}catch(_){return 'Please enter a valid URL (e.g. yourlink.com)';}}
+// Both the description and URL fields must contain SOMETHING before moving
+// on — but a field that's genuinely empty (zero characters) is what's
+// disallowed, not a field with meaningful content. Someone who really wants
+// to leave a field blank can type a single space (" ") — that still counts
+// as "filled" here, so it's an easy intentional opt-out rather than a hard
+// requirement to write real text. Only actual URL-shaped text in the URL
+// field gets format-validated; a lone space skips that check entirely.
+function requireDescAndUrlFilled(descEl,urlEl,descErrId,urlErrId){
+  let ok=true;
+  if(descEl.value.length===0){showInlineError(descErrId,'Please enter a description (type a single space if you want to leave it blank).');descEl.classList.add('field-error');ok=false;}
+  if(urlEl.value.length===0){showInlineError(urlErrId,'Please enter a URL (type a single space if you want to leave it blank).');urlEl.classList.add('field-error');ok=false;}
+  else if(urlEl.value.trim()){const err=validateUrl(urlEl.value);if(err){showInlineError(urlErrId,err);urlEl.classList.add('field-error');ok=false;}}
+  return ok;
+}
 
 function loadState(){try{const s=localStorage.getItem('sixthousandsquares_v9');if(!s)return;const arr=JSON.parse(s);for(const e of arr)if(e.index>=0&&e.index<TOTAL)squares[e.index]=e.data;}catch(_){}}
 function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(()=>{try{const c=[];for(let i=0;i<TOTAL;i++)if(squares[i])c.push({index:i,data:{imageData:squares[i].imageData,desc:squares[i].desc,url:squares[i].url,timestamp:squares[i].timestamp}});localStorage.setItem('sixthousandsquares_v9',JSON.stringify(c));}catch(_){}},500);}
@@ -1202,10 +1244,19 @@ function drawStripedCell(ctx,dx,dy,size,phase,fill,stroke,border){
   const stripeW=Math.max(3,size*0.22),gap=stripeW,period=stripeW+gap;
   ctx.strokeStyle=stroke;ctx.lineWidth=stripeW;
   const off=((phase%period)+period)%period;
-  for(let x=dx-period+off;x<dx+size+period;x+=period){
+  // Slanted bars: rotate 45° around the cell's own center before drawing
+  // vertical lines, so they render as diagonal stripes sliding across the
+  // cell. The clip set above (in un-rotated space) still confines everything
+  // drawn after the rotation to the cell's square bounds.
+  ctx.translate(dx+size/2,dy+size/2);
+  ctx.rotate(Math.PI/4);
+  // Rotating a size x size square by 45° needs its diagonal (size*sqrt(2))
+  // covered on every axis, or corners would be left unstriped — pad generously.
+  const half=size*0.8;
+  for(let x=-half-period+off;x<half+period;x+=period){
     ctx.beginPath();
-    ctx.moveTo(x,dy);
-    ctx.lineTo(x,dy+size);
+    ctx.moveTo(x,-half);
+    ctx.lineTo(x,half);
     ctx.stroke();
   }
   ctx.restore();
@@ -1329,6 +1380,25 @@ async function fetchBoard(){
 // a courtesy so a square doesn't get sniped mid-checkout.
 async function reserveSlot(slot,slots){const res=await fetch(`${API_BASE}/api/reserve-slot`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({slot,slots})});const data=await res.json();if(!res.ok)throw new Error(data.error||'Could not reserve this square. Please try another.');return data;}
 
+// Best-effort courtesy call — if the user clicked Stripe's back/cancel
+// button instead of paying, free their held squares right away instead of
+// making the next visitor wait out the full fallback hold. If this request
+// fails for any reason, the cron sweep still reclaims the hold once it
+// expires, so nothing is lost by not retrying here.
+function releaseReservation(token){
+  if(!token)return;
+  fetch(`${API_BASE}/api/release-reservation`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({reservation_token:token})}).catch(()=>{});
+}
+
+function handleCancelRedirect(){
+  const params=new URLSearchParams(window.location.search);
+  if(params.get('cancelled')==='1'){
+    const token=params.get('reservation_token');
+    window.history.replaceState({},document.title,window.location.pathname);
+    releaseReservation(token);
+  }
+}
+
 function handleSuccessRedirect(){
   const params=new URLSearchParams(window.location.search);
   if(params.get('success')==='1'){
@@ -1340,6 +1410,20 @@ function handleSuccessRedirect(){
       const count=bc*br;
       showToast(count>1?`🎉 Payment successful! Your ${count} squares are now live.`:'🎉 Payment successful! Your square is now live.');
       await fetchBoard();
+      // Stripe confirms payment to the browser slightly before our webhook
+      // (a separate, async server-to-server call) finishes writing the claim
+      // and copying the image. Usually that's a ~1 second gap, but it's not
+      // guaranteed — so if the square isn't showing as claimed yet, retry a
+      // few times with backoff instead of leaving it looking "reserved" until
+      // the user happens to refresh.
+      if(!isNaN(slot)&&slot>=0&&slot<TOTAL&&!squares[slot]){
+        const delays=[1500,2500,4000,6000];
+        for(const d of delays){
+          await new Promise(r=>setTimeout(r,d));
+          await fetchBoard();
+          if(squares[slot])break;
+        }
+      }
       if(!isNaN(slot)&&slot>=0&&slot<TOTAL){
         const{row:ar,col:ac}=slotRC(slot);
         // Flash every square in the block, not just the anchor.
@@ -1461,6 +1545,7 @@ function drawCellImage(sq,x,y){
 }
 
 function drawPreviewGrid(){
+  updatePreviewOffsets();
   previewGridCanvas.width=PREV_BOX_W;previewGridCanvas.height=PREV_BOX_H;
   previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';
   previewGridCtx.fillStyle='#e2e2e2';previewGridCtx.fillRect(0,0,PREV_BOX_W,PREV_BOX_H);
@@ -1597,6 +1682,7 @@ function init(){
     if(!usedReal){loadState();loadAllClaimed().then(()=>{if(countDisplay)countDisplay.textContent=claimedCount();});}
   });
   handleSuccessRedirect();
+  handleCancelRedirect();
   applyHex('#B22234');
   initCustomSizePickerEvents();
 
@@ -1677,6 +1763,7 @@ function init(){
   });
 
   $('btn-to-preview-draw').addEventListener('click',()=>{
+    if(!requireDescAndUrlFilled(drawDescEl,$('draw-url'),'draw-desc-err','draw-url-err'))return;
     if(chosenSlot===null){const fe=firstEmpty();if(fe<0){showInlineError('checkout-error','All squares are claimed!');return;}chosenSlot=fe;}
     if(!commitBlock(chosenSlot,blockCols,blockRows)){
       const bSlots=getBlockSlots(chosenSlot,blockCols,blockRows);
@@ -1687,6 +1774,7 @@ function init(){
   });
   $('btn-to-preview-upload').addEventListener('click',()=>{
     if(!cropImg.src||!cropImg.naturalWidth){showInlineError('upload-file-err','Please upload an image first.');return;}
+    if(!requireDescAndUrlFilled(uploadDescEl,$('upload-url'),'upload-desc-err','upload-url-err'))return;
     if(chosenSlot===null){const fe=firstEmpty();if(fe<0){showInlineError('upload-file-err','All squares are claimed!');return;}chosenSlot=fe;}
     if(!commitBlock(chosenSlot,blockCols,blockRows)){
       const bSlots=getBlockSlots(chosenSlot,blockCols,blockRows);
@@ -1711,8 +1799,11 @@ function init(){
   previewMMCanvas.addEventListener('click',pmMinimapClick);
 
   [$('draw-url'),$('upload-url')].forEach(inp=>{
-    inp.addEventListener('blur',()=>{const errId=inp.id==='draw-url'?'draw-url-err':'upload-url-err';const err=validateUrl(inp.value);showInlineError(errId,err||'');if(err)inp.classList.add('field-error');else inp.classList.remove('field-error');});
+    inp.addEventListener('blur',()=>{const errId=inp.id==='draw-url'?'draw-url-err':'upload-url-err';const err=inp.value.length===0?null:validateUrl(inp.value);showInlineError(errId,err||'');if(err)inp.classList.add('field-error');else inp.classList.remove('field-error');});
     inp.addEventListener('input',()=>{const errId=inp.id==='draw-url'?'draw-url-err':'upload-url-err';showInlineError(errId,'');inp.classList.remove('field-error');});
+  });
+  [drawDescEl,uploadDescEl].forEach(inp=>{
+    inp.addEventListener('input',()=>{const errId=inp.id==='draw-desc'?'draw-desc-err':'upload-desc-err';showInlineError(errId,'');inp.classList.remove('field-error');});
   });
 
   cb1.addEventListener('change',checkReady);cb2.addEventListener('change',checkReady);
