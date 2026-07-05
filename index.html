@@ -146,7 +146,8 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .preview-mm-label{font-size:11px;color:#555;font-weight:600;text-align:center}
 #preview-mm-canvas{display:block;border:1.5px solid #ddd;border-radius:3px;image-rendering:pixelated;cursor:crosshair}
 .preview-mm-sub{font-size:9px;color:#aaa;text-align:center}
-.preview-pos-row{display:flex;align-items:center;justify-content:center;gap:8px;margin-top:4px;font-size:12px;color:var(--navy);font-weight:600;flex-wrap:wrap}
+.preview-pos-row{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;margin-top:4px;font-size:12px;color:var(--navy);font-weight:600;text-align:center}
+.preview-pos-line{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;width:100%}
 .preview-pos-row span{color:#555;font-weight:400}
 .slot-input{width:56px;border:1.5px solid #ddd;border-radius:3px;padding:4px 6px;font-size:12px;text-align:center;outline:none;font-family:'Inter',sans-serif}
 .slot-input:focus{border-color:var(--red)}
@@ -454,9 +455,11 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
       </div>
 
       <div class="preview-pos-row">
-        Your space originates from <strong id="sq-position-label">square #1065 — top-left at row 14, col 25</strong>
-        <span>Click empty squares or type a number to change your position:</span>
-        <input type="number" id="slot-number-input" class="slot-input" min="1" max="6000" aria-label="Square number">
+        <div class="preview-pos-line">Your space originates from <strong id="sq-position-label">square #1065 — top-left at row 14, col 25</strong></div>
+        <div class="preview-pos-line preview-pos-input-line">
+          <span>Click empty squares or type a number to change your position:</span>
+          <input type="number" id="slot-number-input" class="slot-input" min="1" max="6000" aria-label="Square number">
+        </div>
       </div>
       <div class="slot-taken-msg" id="slot-taken-msg" role="alert">Part of this block is taken — try a different position.</div>
       <button class="btn-goto-empty" id="btn-goto-empty">Go to earliest unclaimed square</button>
@@ -554,7 +557,29 @@ const MM_W=200,MM_H=160;
 const MAX_UNDO=20;
 const MAX_IMAGE_BYTES=5*1024*1024;
 const API_BASE='';
-const PREV_COLS=5,PREV_ROWS=3,CELL_PX=100;
+// The preview "window" (its on-screen box) is a fixed size — PREV_BOX_W x
+// PREV_BOX_H — and never changes. What changes as the user's selection
+// grows is the "resolution": how many grid squares are rendered inside that
+// fixed box (PREV_COLS x PREV_ROWS) and therefore how big each cell is
+// (CELL_PX). See updatePreviewDims().
+const PREV_BOX_W=500,PREV_BOX_H=300;
+let PREV_COLS=5,PREV_ROWS=3,CELL_PX=100,PREV_OFFX=0,PREV_OFFY=0;
+// Recomputes PREV_COLS/PREV_ROWS/CELL_PX/PREV_OFFX/PREV_OFFY for the current
+// blockCols/blockRows so the preview always shows the user's whole selection
+// plus a 1-square margin on every side, scaled to fill PREV_BOX_W x
+// PREV_BOX_H as completely as possible (extra squares are added, not blank
+// space) while keeping cells square. Call this whenever blockCols/blockRows
+// changes, before computing previewViewCol/previewViewRow.
+function updatePreviewDims(){
+  const wantCols=blockCols+2,wantRows=blockRows+2;
+  let cell=Math.floor(Math.min(PREV_BOX_W/wantCols,PREV_BOX_H/wantRows));
+  cell=clamp(cell,20,100);
+  let cols=Math.min(COLS,Math.max(wantCols,Math.floor(PREV_BOX_W/cell)));
+  let rows=Math.min(ROWS,Math.max(wantRows,Math.floor(PREV_BOX_H/cell)));
+  PREV_COLS=cols;PREV_ROWS=rows;CELL_PX=cell;
+  PREV_OFFX=Math.floor((PREV_BOX_W-cols*cell)/2);
+  PREV_OFFY=Math.floor((PREV_BOX_H-rows*cell)/2);
+}
 
 const BLOCK_SHAPES=[
   {cols:1,rows:1,label:'1 square'},
@@ -949,6 +974,7 @@ function startReservedPolling(){
 function handleLiveConflict(){
   const count=chosenBlock?chosenBlock.count:1;
   const msg=count===1?'This square is taken. Please choose another.':'Part of this selection is taken. Please choose another position.';
+  startReservedStripeAnimation();
   if(currentStep===1){
     drawPreviewGrid();updatePrevMinimap();
     slotTakenMsg.textContent=msg;
@@ -1156,37 +1182,53 @@ function clearUpload(){uploadFileEl.value='';cropImg.src='';cropUI.style.display
 
 function drawEmptySquare(i){const{row,col}=slotRC(i),dx=col*SQ,dy=row*SQ;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(dx,dy,SQ,SQ);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5;mosaicCtx.strokeRect(dx+0.25,dy+0.25,SQ-0.5,SQ-0.5);mosaicCtx.fillStyle='rgba(180,180,180,0.55)';mosaicCtx.font=`${SQ*0.42}px Inter,sans-serif`;mosaicCtx.textAlign='center';mosaicCtx.textBaseline='middle';mosaicCtx.fillText(i+1,dx+SQ/2,dy+SQ/2);}
 
-// Draws animated diagonal stripes (////) over a single SQxSQ cell to mark it
-// as reserved (mid-selection/checkout by someone else). `phase` shifts the
-// stripe offset over time so repeated calls from the animation loop create
-// a moving-stripe effect, similar to a CSS `background-position` animation.
-function drawReservedStripeCell(ctx,dx,dy,size,phase){
+// Draws evenly-spaced vertical bars over a single cell that slide
+// horizontally over time (`phase` shifts them each animation frame — like a
+// CSS `background-position` animation). Used for two different meanings:
+// grey = this square is reserved (mid-selection/checkout) by someone else;
+// red = this square, inside YOUR OWN selection, has just been claimed or
+// reserved by someone else (a live conflict).
+function drawStripedCell(ctx,dx,dy,size,phase,fill,stroke,border){
   ctx.save();
   ctx.beginPath();ctx.rect(dx,dy,size,size);ctx.clip();
-  ctx.fillStyle='#fdf1d8';ctx.fillRect(dx,dy,size,size);
-  const stripeW=Math.max(3,size*0.22),gap=stripeW;
-  ctx.strokeStyle='rgba(200,149,10,0.55)';ctx.lineWidth=stripeW;
-  const span=size*2;
-  for(let off=-span;off<span*2;off+=stripeW+gap){
-    const x=dx+((off+phase)%span);
+  if(fill){ctx.fillStyle=fill;ctx.fillRect(dx,dy,size,size);}
+  const stripeW=Math.max(3,size*0.22),gap=stripeW,period=stripeW+gap;
+  ctx.strokeStyle=stroke;ctx.lineWidth=stripeW;
+  const off=((phase%period)+period)%period;
+  for(let x=dx-period+off;x<dx+size+period;x+=period){
     ctx.beginPath();
-    ctx.moveTo(x,dy+size);
-    ctx.lineTo(x+size,dy);
+    ctx.moveTo(x,dy);
+    ctx.lineTo(x,dy+size);
     ctx.stroke();
   }
   ctx.restore();
-  ctx.strokeStyle='rgba(200,149,10,0.5)';ctx.lineWidth=0.75;
-  ctx.strokeRect(dx+0.4,dy+0.4,size-0.8,size-0.8);
+  if(border){ctx.strokeStyle=border;ctx.lineWidth=0.75;ctx.strokeRect(dx+0.4,dy+0.4,size-0.8,size-0.8);}
+}
+function drawReservedStripeCell(ctx,dx,dy,size,phase){
+  drawStripedCell(ctx,dx,dy,size,phase,'#e9ebed','rgba(120,130,140,0.55)','rgba(120,130,140,0.5)');
+}
+function drawConflictStripeCell(ctx,dx,dy,size,phase){
+  drawStripedCell(ctx,dx,dy,size,phase,'rgba(178,34,52,0.16)','rgba(178,34,52,0.65)','rgba(178,34,52,0.75)');
 }
 function drawReservedSquare(i){const{row,col}=slotRC(i);drawReservedStripeCell(mosaicCtx,col*SQ,row*SQ,SQ,reservedStripePhase);}
 let reservedStripePhase=0;
+// True whenever any striped (reserved or conflict) cell is currently on
+// screen and therefore needs to keep animating.
+function anyStripesActive(){
+  if(reservedSlots.size)return true;
+  if(currentStep===1&&previewSelected>=0){
+    const bSlots=getBlockSlots(previewSelected,blockCols,blockRows);
+    if(bSlots&&bSlots.some(s=>squares[s]||reservedSlots.has(s)))return true;
+  }
+  return false;
+}
 function startReservedStripeAnimation(){
   if(reservedStripeAnim)return;
   const step=()=>{
-    reservedStripePhase=(reservedStripePhase+0.6)%(SQ*2);
+    reservedStripePhase=(reservedStripePhase+0.35)%10000;
     for(const i of reservedSlots)if(!squares[i])drawReservedSquare(i);
     if(currentStep===1)drawPreviewGrid();
-    reservedStripeAnim=reservedSlots.size?requestAnimationFrame(step):null;
+    reservedStripeAnim=anyStripesActive()?requestAnimationFrame(step):null;
   };
   reservedStripeAnim=requestAnimationFrame(step);
 }
@@ -1366,13 +1408,33 @@ function closeClaimModal(){claimOverlay.classList.remove('open');document.remove
 function switchTab(tab){activeTab=tab;$('panel-draw').style.display=tab==='draw'?'block':'none';$('panel-upload').style.display=tab==='upload'?'block':'none';$('tab-draw-btn').classList.toggle('active',tab==='draw');$('tab-upload-btn').classList.toggle('active',tab==='upload');$('tab-draw-btn').setAttribute('aria-selected',String(tab==='draw'));$('tab-upload-btn').setAttribute('aria-selected',String(tab==='upload'));if(tab==='draw')requestAnimationFrame(()=>{drawSVCanvas();drawSpectrumBar();});}
 function showStep(n){currentStep=n;if(n===1)buildPreviewStep();$('step-0').style.display=n===0?'block':'none';$('step-1').style.display=n===1?'block':'none';}
 
+// Cached, already-decoded <img> for the user's own square/block artwork.
+// Decoded ONCE per buildPreviewStep() call (see loadPreviewSourceImage)
+// instead of re-created from a data URL on every single draw — previously
+// drawPreviewGrid() re-decoded a brand-new Image every animation frame
+// while any square was reserved, which cleared+redrew the canvas far
+// faster than those decodes could keep up, leaving the user's own square
+// blank most of the time. Now the decode happens once and every redraw
+// (including once-a-frame redraws for the stripe animation) just blits the
+// already-loaded bitmap, which is fast and synchronous.
+let previewSrcImg=null;
+function loadPreviewSourceImage(dataUrl){
+  previewSrcImg=null;
+  if(!dataUrl)return;
+  const img=new Image();
+  img.onload=()=>{previewSrcImg=img;if(currentStep===1)drawPreviewGrid();};
+  img.src=dataUrl;
+}
+
 function buildPreviewStep(){
   if(chosenSlot===null){const fe=firstEmpty();if(fe<0)return;chosenSlot=fe;}
   currentImageData=captureImageData();
   currentPreviewImageData=captureImageData(PREVIEW_RES_MULT);
+  loadPreviewSourceImage(currentPreviewImageData||currentImageData);
   currentDesc=(activeTab==='draw'?drawDescEl.value:uploadDescEl.value).trim();
   currentUrl=normalizeUrl(activeTab==='draw'?$('draw-url').value:$('upload-url').value);
   previewSelected=chosenSlot;
+  updatePreviewDims();
   const{row,col}=slotRC(chosenSlot);
   previewViewCol=clamp(col-Math.floor(PREV_COLS/2),0,COLS-PREV_COLS);
   previewViewRow=clamp(row-Math.floor(PREV_ROWS/2),0,ROWS-PREV_ROWS);
@@ -1392,37 +1454,30 @@ function drawCellImage(sq,x,y){
 }
 
 function drawPreviewGrid(){
-  previewGridCanvas.width=PREV_COLS*CELL_PX;previewGridCanvas.height=PREV_ROWS*CELL_PX;
+  previewGridCanvas.width=PREV_BOX_W;previewGridCanvas.height=PREV_BOX_H;
   previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';
+  previewGridCtx.fillStyle='#e2e2e2';previewGridCtx.fillRect(0,0,PREV_BOX_W,PREV_BOX_H);
   const blockSlots=previewSelected>=0?getBlockSlots(previewSelected,blockCols,blockRows):null;
   const blockSlotSet=new Set(blockSlots||[]);
+  const hasSrc=!!(currentPreviewImageData||currentImageData);
   for(let r=0;r<PREV_ROWS;r++){for(let c=0;c<PREV_COLS;c++){
     const gc=previewViewCol+c,gr=previewViewRow+r,i=rcSlot(gr,gc);
-    const x=c*CELL_PX,y=r*CELL_PX;
+    const x=PREV_OFFX+c*CELL_PX,y=PREV_OFFY+r*CELL_PX;
     if(blockSlotSet.has(i)){
       const{row:br2,col:bc2}=slotRC(i);
       const{row:ar,col:ac}=slotRC(previewSelected>=0?previewSelected:i);
-      const bx=(bc2-ac)/blockCols,by=(br2-ar)/blockRows;
+      const ix=(bc2-ac)/blockCols,iy=(br2-ar)/blockRows;
       previewGridCtx.fillStyle='#f5f5f5';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);
-      if(currentPreviewImageData||currentImageData){
-        const img=new Image();
-        const ix=bx,iy=by;
-        img.onload=()=>{
-          previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';
-          previewGridCtx.save();previewGridCtx.beginPath();previewGridCtx.rect(x,y,CELL_PX,CELL_PX);previewGridCtx.clip();
-          previewGridCtx.drawImage(img,x-ix*blockCols*CELL_PX,y-iy*blockRows*CELL_PX,blockCols*CELL_PX,blockRows*CELL_PX);
-          previewGridCtx.restore();
-          const{row:ar2,col:ac2}=slotRC(previewSelected);
-          const bStartX=(ac2-previewViewCol)*CELL_PX,bStartY=(ar2-previewViewRow)*CELL_PX;
-          const bEndX=bStartX+blockCols*CELL_PX,bEndY=bStartY+blockRows*CELL_PX;
-          previewGridCtx.strokeStyle='#B22234';previewGridCtx.lineWidth=3;
-          previewGridCtx.strokeRect(bStartX+1.5,bStartY+1.5,(bEndX-bStartX)-3,(bEndY-bStartY)-3);
-          const cxBlock=bStartX+(bEndX-bStartX)/2,cyBlock=bStartY+(bEndY-bStartY)/2;
-          previewGridCtx.fillStyle='rgba(255,255,255,.88)';previewGridCtx.fillRect(cxBlock-20,cyBlock-7,40,14);
-          previewGridCtx.fillStyle='#B22234';previewGridCtx.font='bold 8px Inter,sans-serif';
-          previewGridCtx.textAlign='center';previewGridCtx.textBaseline='middle';
-          previewGridCtx.fillText('YOURS',cxBlock,cyBlock);
-        };img.src=currentPreviewImageData||currentImageData;
+      if(hasSrc&&previewSrcImg){
+        previewGridCtx.save();previewGridCtx.beginPath();previewGridCtx.rect(x,y,CELL_PX,CELL_PX);previewGridCtx.clip();
+        previewGridCtx.drawImage(previewSrcImg,x-ix*blockCols*CELL_PX,y-iy*blockRows*CELL_PX,blockCols*CELL_PX,blockRows*CELL_PX);
+        previewGridCtx.restore();
+      }
+      // Live conflict: this particular square in YOUR selection has just
+      // been claimed or reserved by someone else — flag it in red on top
+      // of your own artwork instead of silently hiding it.
+      if(squares[i]||reservedSlots.has(i)){
+        drawConflictStripeCell(previewGridCtx,x,y,CELL_PX,reservedStripePhase);
       }
     }else if(squares[i]){
       previewGridCtx.fillStyle='#eee';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);drawCellImage(squares[i],x,y);
@@ -1432,9 +1487,23 @@ function drawPreviewGrid(){
       previewGridCtx.fillStyle='#f5f5f5';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);previewGridCtx.fillStyle='rgba(180,180,180,.55)';previewGridCtx.font='11px Inter,sans-serif';previewGridCtx.textAlign='center';previewGridCtx.textBaseline='middle';previewGridCtx.fillText(i+1,x+CELL_PX/2,y+CELL_PX/2);previewGridCtx.strokeStyle='rgba(180,180,180,.6)';previewGridCtx.lineWidth=0.5;previewGridCtx.strokeRect(x+0.25,y+0.25,CELL_PX-0.5,CELL_PX-0.5);
     }
   }}
+  // Selection border + "YOURS" label, drawn once on top of the whole block
+  // (rather than once per cell) once the artwork has actually loaded.
+  if(previewSelected>=0&&hasSrc&&previewSrcImg){
+    const{row:ar2,col:ac2}=slotRC(previewSelected);
+    const bStartX=PREV_OFFX+(ac2-previewViewCol)*CELL_PX,bStartY=PREV_OFFY+(ar2-previewViewRow)*CELL_PX;
+    const bEndX=bStartX+blockCols*CELL_PX,bEndY=bStartY+blockRows*CELL_PX;
+    previewGridCtx.strokeStyle='#B22234';previewGridCtx.lineWidth=3;
+    previewGridCtx.strokeRect(bStartX+1.5,bStartY+1.5,(bEndX-bStartX)-3,(bEndY-bStartY)-3);
+    const cxBlock=bStartX+(bEndX-bStartX)/2,cyBlock=bStartY+(bEndY-bStartY)/2;
+    previewGridCtx.fillStyle='rgba(255,255,255,.88)';previewGridCtx.fillRect(cxBlock-20,cyBlock-7,40,14);
+    previewGridCtx.fillStyle='#B22234';previewGridCtx.font='bold 8px Inter,sans-serif';
+    previewGridCtx.textAlign='center';previewGridCtx.textBaseline='middle';
+    previewGridCtx.fillText('YOURS',cxBlock,cyBlock);
+  }
 }
 
-function previewGridClick(e){const{x,y}=canvasClientToLocal(previewGridCanvas,e.clientX,e.clientY);const c=Math.floor(x/CELL_PX),row=Math.floor(y/CELL_PX);if(c<0||c>=PREV_COLS||row<0||row>=PREV_ROWS)return;const i=rcSlot(previewViewRow+row,previewViewCol+c);if(squares[i])return;if(reservedSlots.has(i)){showToast('This space is reserved');return;}trySelectSlot(i);}
+function previewGridClick(e){const{x,y}=canvasClientToLocal(previewGridCanvas,e.clientX,e.clientY);const c=Math.floor((x-PREV_OFFX)/CELL_PX),row=Math.floor((y-PREV_OFFY)/CELL_PX);if(c<0||c>=PREV_COLS||row<0||row>=PREV_ROWS)return;const i=rcSlot(previewViewRow+row,previewViewCol+c);if(squares[i])return;if(reservedSlots.has(i)){showToast('This space is reserved');return;}trySelectSlot(i);}
 function shiftPreviewView(dc,dr){previewViewCol=clamp(previewViewCol+dc,0,COLS-PREV_COLS);previewViewRow=clamp(previewViewRow+dr,0,ROWS-PREV_ROWS);drawPreviewGrid();updatePrevMinimap();}
 function updatePosLabel(){
   if(chosenSlot===null){posLabel.textContent='—';return;}
