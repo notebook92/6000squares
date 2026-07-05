@@ -574,9 +574,16 @@ function updatePreviewDims(){
   const wantCols=blockCols+2,wantRows=blockRows+2;
   let cell=Math.floor(Math.min(PREV_BOX_W/wantCols,PREV_BOX_H/wantRows));
   cell=clamp(cell,20,100);
-  let cols=Math.min(COLS,Math.max(wantCols,Math.floor(PREV_BOX_W/cell)));
-  let rows=Math.min(ROWS,Math.max(wantRows,Math.floor(PREV_BOX_H/cell)));
+  // Use ceil (not floor) so the column/row count always over-fills the box —
+  // extra squares run past the edges and get clipped by the canvas bounds,
+  // rather than leaving blank letterbox space when the box isn't an exact
+  // multiple of the cell size.
+  let cols=Math.min(COLS,Math.max(wantCols,Math.ceil(PREV_BOX_W/cell)));
+  let rows=Math.min(ROWS,Math.max(wantRows,Math.ceil(PREV_BOX_H/cell)));
   PREV_COLS=cols;PREV_ROWS=rows;CELL_PX=cell;
+  // Offsets can now be <=0 (grid slightly larger than the box) — that's
+  // intended, it centers the overflow evenly so squares are cut off equally
+  // on both sides instead of leaving a gap on one side.
   PREV_OFFX=Math.floor((PREV_BOX_W-cols*cell)/2);
   PREV_OFFY=Math.floor((PREV_BOX_H-rows*cell)/2);
 }
