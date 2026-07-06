@@ -19,7 +19,7 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .logo-wrap{margin-right:auto}
 .logo-main{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:2px;color:#fff;line-height:1}
 .logo-main span{color:#ef5350}
-.header-slogan{font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--white);position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);white-space:nowrap;z-index:1}
+.header-slogan{font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--white);flex:1 1 auto;min-width:0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 14px;z-index:1}
 .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
 .sq-count-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 16px;font-size:13px;color:rgba(255,255,255,.85);white-space:nowrap}
 .sq-count-pill strong{color:var(--gold);font-size:15px}
@@ -242,7 +242,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
   <div class="logo-wrap">
     <div class="logo-main">6000<span>Squares</span></div>
   </div>
-  <div class="header-slogan">6000 15×15px squares · $3 per square · Own a piece of present day internet.</div>
+  <div class="header-slogan">6000 15×15px squares · $3 per square · Own a piece of Modern-Day internet.</div>
   <div class="header-right">
     <div class="sq-count-pill" aria-live="polite"><strong id="count-display">0</strong> / 6000 claimed</div>
     <button class="btn-claim" id="btn-claim">Claim a Square!</button>
@@ -1456,7 +1456,7 @@ function scrollToGridPosition(gx,gy){const rect=mosaicCanvas.getBoundingClientRe
 
 function slotFromPoint(cx,cy){const{x:gx,y:gy}=canvasClientToLocal(mosaicCanvas,cx,cy);if(gx<0||gy<0||gx>=GRID_W||gy>=GRID_H)return -1;return rcSlot((gy/SQ)|0,(gx/SQ)|0);}
 
-function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i===tooltipSlot)return;tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];const dateStr=sq.timestamp?new Date(sq.timestamp).toLocaleDateString():'';const tip=(sq.desc?sq.desc+'\n':'')+dateStr;tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
+function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i===tooltipSlot)return;tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];const tip=sq.desc||'';tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
 
 function vpMouseLeave(){tooltipEl.style.display='none';tooltipSlot=-1;}
 
@@ -1537,11 +1537,28 @@ function buildPreviewStep(){
   showInlineError('checkout-error','');
 }
 
-function drawCellImage(sq,x,y){
+// Like renderSquareToCanvas() on the main mosaic canvas: a square that
+// belongs to a multi-square block shares ONE uploaded image with its
+// siblings, so we must crop out just this square's own sub-region of that
+// shared image — not draw the whole shared image shrunk into one cell
+// (which is what produced the "mini duplicate" artifacts in the preview).
+function drawCellImage(sq,i,x,y){
   previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';
-  if(sq._bmp){previewGridCtx.drawImage(sq._bmp,x,y,CELL_PX,CELL_PX);return;}
-  if(sq._img){previewGridCtx.drawImage(sq._img,x,y,CELL_PX,CELL_PX);return;}
-  const img=new Image();img.onload=()=>{previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';previewGridCtx.drawImage(img,x,y,CELL_PX,CELL_PX);};img.src=sq.imageData;
+  const bc=sq.blockCols||1,br=sq.blockRows||1;
+  let offCol=0,offRow=0;
+  if(bc>1||br>1){
+    const anchor=sq.anchorSlot??i;
+    const{row:ar,col:ac}=slotRC(anchor);
+    const{row,col}=slotRC(i);
+    offCol=col-ac;offRow=row-ar;
+  }
+  const draw=(source)=>{
+    const cw=source.width/bc,ch=source.height/br;
+    previewGridCtx.drawImage(source,offCol*cw,offRow*ch,cw,ch,x,y,CELL_PX,CELL_PX);
+  };
+  if(sq._bmp){draw(sq._bmp);return;}
+  if(sq._img){draw(sq._img);return;}
+  const img=new Image();img.onload=()=>{sq._img=img;previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';draw(img);};img.src=sq.imageData;
 }
 
 function drawPreviewGrid(){
@@ -1572,7 +1589,7 @@ function drawPreviewGrid(){
         drawConflictStripeCell(previewGridCtx,x,y,CELL_PX,reservedStripePhase);
       }
     }else if(squares[i]){
-      previewGridCtx.fillStyle='#eee';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);drawCellImage(squares[i],x,y);
+      previewGridCtx.fillStyle='#eee';previewGridCtx.fillRect(x,y,CELL_PX,CELL_PX);drawCellImage(squares[i],i,x,y);
     }else if(reservedSlots.has(i)){
       drawReservedStripeCell(previewGridCtx,x,y,CELL_PX,reservedStripePhase);
     }else{
