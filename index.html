@@ -29,7 +29,7 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 #main-layout{display:flex;gap:12px;padding:12px;align-items:flex-start;justify-content:center;flex:1}
 #viewport-wrap{display:flex;flex-direction:column;gap:0;flex-shrink:0;}
 #viewport-container{background:var(--white);border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.3);position:relative;user-select:none;overflow:visible}
-#mosaic-canvas{display:block;position:relative;image-rendering:pixelated}
+#mosaic-canvas{display:block;position:relative;width:1200px;height:1125px}
 .sq-tooltip{position:fixed;pointer-events:none;z-index:9999;background:rgba(20,20,20,.9);color:#fff;font-size:11px;padding:6px 9px;border-radius:5px;max-width:180px;line-height:1.5;white-space:pre-wrap;display:none;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 #board-loading{position:absolute;inset:0;background:rgba(245,245,245,.88);display:flex;align-items:center;justify-content:center;z-index:10;border-radius:4px}
 #board-loading-inner{display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -255,7 +255,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 
   <div id="viewport-wrap">
     <div id="viewport-container" style="position:relative">
-      <canvas id="mosaic-canvas" role="application" aria-label="6000 Squares grid — 80 columns by 75 rows. Click an empty square to claim it." tabindex="0" width="1200" height="1125"></canvas>
+      <canvas id="mosaic-canvas" role="application" aria-label="6000 Squares grid — 80 columns by 75 rows. Click an empty square to claim it." tabindex="0" width="2400" height="2250"></canvas>
       <div id="board-loading" role="status" aria-label="Loading board" style="display: none;">
         <div id="board-loading-inner">
           <div class="spinner"></div>
@@ -552,7 +552,22 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 // ──────────────────────────────────────────────────────────────────────────
 
 const COLS=80,ROWS=75,TOTAL=COLS*ROWS,SQ=15;
-const GRID_W=COLS*SQ,GRID_H=ROWS*SQ;
+// DISPLAY_W/H: the on-page physical size of the mosaic — unchanged. This is
+// what the canvas's CSS width/height are pinned to, what click hit-testing
+// maps back to via canvasClientToLocal, and what "square #N covers WxH px"
+// copy still describes. Nothing about layout, slot numbering, or the visual
+// footprint of a square changes.
+const DISPLAY_W=COLS*SQ,DISPLAY_H=ROWS*SQ;
+// RES_MULT: how much sharper the actual drawing buffer / stored images are
+// vs. the display size — like a Retina 2x/3x asset. BUF_SQ is the resolution
+// used for the mosaic canvas's backing store and for captured/stored square
+// images, so a 1×1 square is captured at 30×30 source pixels instead of
+// 15×15, then the browser downsamples it back down to its unchanged 15×15
+// on-screen footprint (DISPLAY_W×DISPLAY_H) — same principle as a Retina
+// display: more pixels packed into the same physical space, sharper result.
+const RES_MULT=2;
+const BUF_SQ=SQ*RES_MULT;
+const GRID_W=COLS*BUF_SQ,GRID_H=ROWS*BUF_SQ;
 const MM_W=200,MM_H=160;
 const MAX_UNDO=20;
 const MAX_IMAGE_BYTES=5*1024*1024;
@@ -648,6 +663,7 @@ function isValidBlockShape(bc,br){
 
 const $=id=>document.getElementById(id);
 const mosaicCanvas=$('mosaic-canvas'),mosaicCtx=mosaicCanvas.getContext('2d');
+mosaicCtx.imageSmoothingEnabled=true;mosaicCtx.imageSmoothingQuality='high';
 const vpContainer=$('viewport-container');
 const boardLoadingEl=$('board-loading');
 const countDisplay=$('count-display'),tooltipEl=$('sq-tooltip');
@@ -1191,7 +1207,7 @@ function captureImageData(scale=1){
   // needs 150×150px — never the 600×400 the editor uses for a nice UX.
   // `scale` bumps this up for preview-only renders (see PREVIEW_RES_MULT);
   // it must stay 1 for the actual stored/submitted image.
-  const outW=bc*SQ*scale,outH=br*SQ*scale;
+  const outW=bc*BUF_SQ*scale,outH=br*BUF_SQ*scale;
   const flat=document.createElement('canvas');flat.width=outW;flat.height=outH;
   const ctx=flat.getContext('2d');ctx.imageSmoothingEnabled=true;ctx.imageSmoothingQuality='high';
   ctx.fillStyle='#ffffff';ctx.fillRect(0,0,outW,outH);
@@ -1229,7 +1245,7 @@ function loadImageFile(file){
 }
 function clearUpload(){uploadFileEl.value='';cropImg.src='';cropUI.style.display='none';uploadZone.style.display='flex';uploadCtrlRow.style.display='none';cropUndoStack.length=0;cropRedoStack.length=0;showInlineError('upload-file-err','');}
 
-function drawEmptySquare(i){const{row,col}=slotRC(i),dx=col*SQ,dy=row*SQ;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(dx,dy,SQ,SQ);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5;mosaicCtx.strokeRect(dx+0.25,dy+0.25,SQ-0.5,SQ-0.5);mosaicCtx.fillStyle='rgba(180,180,180,0.55)';mosaicCtx.font=`${SQ*0.42}px Inter,sans-serif`;mosaicCtx.textAlign='center';mosaicCtx.textBaseline='middle';mosaicCtx.fillText(i+1,dx+SQ/2,dy+SQ/2);}
+function drawEmptySquare(i){const{row,col}=slotRC(i),dx=col*BUF_SQ,dy=row*BUF_SQ;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(dx,dy,BUF_SQ,BUF_SQ);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5*RES_MULT;mosaicCtx.strokeRect(dx+0.25,dy+0.25,BUF_SQ-0.5,BUF_SQ-0.5);mosaicCtx.fillStyle='rgba(180,180,180,0.55)';mosaicCtx.font=`${BUF_SQ*0.42}px Inter,sans-serif`;mosaicCtx.textAlign='center';mosaicCtx.textBaseline='middle';mosaicCtx.fillText(i+1,dx+BUF_SQ/2,dy+BUF_SQ/2);}
 
 // Draws evenly-spaced vertical bars over a single cell that slide
 // horizontally over time (`phase` shifts them each animation frame — like a
@@ -1268,7 +1284,7 @@ function drawReservedStripeCell(ctx,dx,dy,size,phase){
 function drawConflictStripeCell(ctx,dx,dy,size,phase){
   drawStripedCell(ctx,dx,dy,size,phase,'rgba(178,34,52,0.16)','rgba(178,34,52,0.65)','rgba(178,34,52,0.75)');
 }
-function drawReservedSquare(i){const{row,col}=slotRC(i);drawReservedStripeCell(mosaicCtx,col*SQ,row*SQ,SQ,reservedStripePhase);}
+function drawReservedSquare(i){const{row,col}=slotRC(i);drawReservedStripeCell(mosaicCtx,col*BUF_SQ,row*BUF_SQ,BUF_SQ,reservedStripePhase);}
 let reservedStripePhase=0;
 // True whenever any striped (reserved or conflict) cell is currently on
 // screen and therefore needs to keep animating.
@@ -1300,14 +1316,14 @@ function applyReservedSlots(newSet){
   if(reservedSlots.size)startReservedStripeAnimation();
 }
 
-function initMosaicCanvas(){mosaicCanvas.width=GRID_W;mosaicCanvas.height=GRID_H;mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(0,0,GRID_W,GRID_H);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5;for(let c=0;c<=COLS;c++){mosaicCtx.beginPath();mosaicCtx.moveTo(c*SQ,0);mosaicCtx.lineTo(c*SQ,GRID_H);mosaicCtx.stroke();}for(let r=0;r<=ROWS;r++){mosaicCtx.beginPath();mosaicCtx.moveTo(0,r*SQ);mosaicCtx.lineTo(GRID_W,r*SQ);mosaicCtx.stroke();}for(let i=0;i<TOTAL;i++)drawEmptySquare(i);}
+function initMosaicCanvas(){mosaicCanvas.width=GRID_W;mosaicCanvas.height=GRID_H;mosaicCanvas.style.width=DISPLAY_W+'px';mosaicCanvas.style.height=DISPLAY_H+'px';mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(0,0,GRID_W,GRID_H);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5*RES_MULT;for(let c=0;c<=COLS;c++){mosaicCtx.beginPath();mosaicCtx.moveTo(c*BUF_SQ,0);mosaicCtx.lineTo(c*BUF_SQ,GRID_H);mosaicCtx.stroke();}for(let r=0;r<=ROWS;r++){mosaicCtx.beginPath();mosaicCtx.moveTo(0,r*BUF_SQ);mosaicCtx.lineTo(GRID_W,r*BUF_SQ);mosaicCtx.stroke();}for(let i=0;i<TOTAL;i++)drawEmptySquare(i);}
 
 // Squares that belong to a multi-square block all share ONE uploaded image
 // (sized blockCols*SQ x blockRows*SQ). Each square crops its own SQ x SQ
 // region out of that shared image based on its offset from the block's
 // anchor slot, instead of assuming the whole image is just this one square.
 function renderSquareToCanvas(i){
-  const sq=squares[i];const{row,col}=slotRC(i);const dx=col*SQ,dy=row*SQ;
+  const sq=squares[i];const{row,col}=slotRC(i);const dx=col*BUF_SQ,dy=row*BUF_SQ;
   if(!sq){drawEmptySquare(i);return Promise.resolve();}
   const bc=sq.blockCols||1,br=sq.blockRows||1;
   let sx=0,sy=0,sw=null,sh=null; // source crop rect within the shared image; sw/sh resolved once natural size is known
@@ -1318,16 +1334,16 @@ function renderSquareToCanvas(i){
     sq._cropFrac={offCol,offRow,bc,br}; // fraction-based crop, resolved against actual image px below
   }
   if(sq._bmp){
-    if(sq._cropFrac){const{offCol,offRow,bc,br}=sq._cropFrac;const cw=sq._bmp.width/bc,ch=sq._bmp.height/br;mosaicCtx.drawImage(sq._bmp,offCol*cw,offRow*ch,cw,ch,dx,dy,SQ,SQ);}
-    else{mosaicCtx.drawImage(sq._bmp,dx,dy,SQ,SQ);}
+    if(sq._cropFrac){const{offCol,offRow,bc,br}=sq._cropFrac;const cw=sq._bmp.width/bc,ch=sq._bmp.height/br;mosaicCtx.drawImage(sq._bmp,offCol*cw,offRow*ch,cw,ch,dx,dy,BUF_SQ,BUF_SQ);}
+    else{mosaicCtx.drawImage(sq._bmp,dx,dy,BUF_SQ,BUF_SQ);}
     return Promise.resolve();
   }
   return new Promise(res=>{
     const img=new Image();
     img.onload=()=>{
       const draw=(source)=>{
-        if(sq._cropFrac){const{offCol,offRow,bc,br}=sq._cropFrac;const cw=source.width/bc,ch=source.height/br;mosaicCtx.drawImage(source,offCol*cw,offRow*ch,cw,ch,dx,dy,SQ,SQ);}
-        else{mosaicCtx.drawImage(source,dx,dy,SQ,SQ);}
+        if(sq._cropFrac){const{offCol,offRow,bc,br}=sq._cropFrac;const cw=source.width/bc,ch=source.height/br;mosaicCtx.drawImage(source,offCol*cw,offRow*ch,cw,ch,dx,dy,BUF_SQ,BUF_SQ);}
+        else{mosaicCtx.drawImage(source,dx,dy,BUF_SQ,BUF_SQ);}
       };
       if(typeof createImageBitmap!=='undefined'){
         createImageBitmap(img).then(bmp=>{sq._bmp=bmp;draw(bmp);res();}).catch(()=>{draw(img);res();});
@@ -1430,7 +1446,7 @@ function handleSuccessRedirect(){
         const blockSlots=[];
         for(let r=0;r<br;r++)for(let c=0;c<bc;c++){const rr=ar+r,cc=ac+c;if(rr<75&&cc<80)blockSlots.push(rcSlot(rr,cc));}
         const centerCol=ac+bc/2,centerRow=ar+br/2;
-        scrollToGridPosition(centerCol*SQ,centerRow*SQ);
+        scrollToGridPosition(centerCol*BUF_SQ,centerRow*BUF_SQ);
         setTimeout(()=>{
           let f=0;
           const iv=setInterval(()=>{
@@ -1438,7 +1454,7 @@ function handleSuccessRedirect(){
             for(const s of blockSlots){
               const{row,col}=slotRC(s);
               mosaicCtx.fillStyle=(f%2)?'rgba(200,149,10,0.7)':'rgba(200,149,10,0)';
-              mosaicCtx.fillRect(col*SQ,row*SQ,SQ,SQ);
+              mosaicCtx.fillRect(col*BUF_SQ,row*BUF_SQ,BUF_SQ,BUF_SQ);
             }
             f++;
           },150);
@@ -1454,7 +1470,7 @@ function handleSuccessRedirect(){
 // shown at native size (desktop) or scaled down to fit (mobile).
 function scrollToGridPosition(gx,gy){const rect=mosaicCanvas.getBoundingClientRect();const sx=rect.width/mosaicCanvas.width,sy=rect.height/mosaicCanvas.height;const cssX=gx*sx,cssY=gy*sy;const cpx=rect.left+window.scrollX,cpy=rect.top+window.scrollY;window.scrollTo({left:clamp(cpx+cssX-window.innerWidth/2,0,document.body.scrollWidth-window.innerWidth),top:clamp(cpy+cssY-window.innerHeight/2,0,document.body.scrollHeight-window.innerHeight),behavior:'smooth'});}
 
-function slotFromPoint(cx,cy){const{x:gx,y:gy}=canvasClientToLocal(mosaicCanvas,cx,cy);if(gx<0||gy<0||gx>=GRID_W||gy>=GRID_H)return -1;return rcSlot((gy/SQ)|0,(gx/SQ)|0);}
+function slotFromPoint(cx,cy){const{x:gx,y:gy}=canvasClientToLocal(mosaicCanvas,cx,cy);if(gx<0||gy<0||gx>=GRID_W||gy>=GRID_H)return -1;return rcSlot((gy/BUF_SQ)|0,(gx/BUF_SQ)|0);}
 
 function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i===tooltipSlot)return;tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];const tip=sq.desc||'';tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
 
@@ -1620,11 +1636,11 @@ function updatePosLabel(){
   posLabel.textContent=`square #${chosenSlot+1} — ${blockCols}×${blockRows} at row ${row+1}, col ${col+1}`;
 }
 
-function updatePrevMinimap(){const cw=previewMMCanvas.width,ch=previewMMCanvas.height;const scX=cw/GRID_W,scY=ch/GRID_H;previewMMCtx.fillStyle='#e8e8e8';previewMMCtx.fillRect(0,0,cw,ch);for(let i=0;i<TOTAL;i++){if(!squares[i])continue;const{row,col}=slotRC(i);previewMMCtx.fillStyle='#C8950A';previewMMCtx.fillRect(col*SQ*scX,row*SQ*scY,Math.max(1,SQ*scX),Math.max(1,SQ*scY));}if(chosenSlot!==null){const{row,col}=slotRC(chosenSlot);const bw=blockCols*SQ*scX,bh=blockRows*SQ*scY;previewMMCtx.fillStyle='rgba(178,34,52,0.35)';previewMMCtx.fillRect(col*SQ*scX,row*SQ*scY,bw,bh);const dotX=col*SQ*scX+bw/2,dotY=row*SQ*scY+bh/2;previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.fillStyle='#B22234';previewMMCtx.fill();previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.strokeStyle='#fff';previewMMCtx.lineWidth=1.5;previewMMCtx.stroke();}}
+function updatePrevMinimap(){const cw=previewMMCanvas.width,ch=previewMMCanvas.height;const scX=cw/GRID_W,scY=ch/GRID_H;previewMMCtx.fillStyle='#e8e8e8';previewMMCtx.fillRect(0,0,cw,ch);for(let i=0;i<TOTAL;i++){if(!squares[i])continue;const{row,col}=slotRC(i);previewMMCtx.fillStyle='#C8950A';previewMMCtx.fillRect(col*BUF_SQ*scX,row*BUF_SQ*scY,Math.max(1,BUF_SQ*scX),Math.max(1,BUF_SQ*scY));}if(chosenSlot!==null){const{row,col}=slotRC(chosenSlot);const bw=blockCols*BUF_SQ*scX,bh=blockRows*BUF_SQ*scY;previewMMCtx.fillStyle='rgba(178,34,52,0.35)';previewMMCtx.fillRect(col*BUF_SQ*scX,row*BUF_SQ*scY,bw,bh);const dotX=col*BUF_SQ*scX+bw/2,dotY=row*BUF_SQ*scY+bh/2;previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.fillStyle='#B22234';previewMMCtx.fill();previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.strokeStyle='#fff';previewMMCtx.lineWidth=1.5;previewMMCtx.stroke();}}
 
-function pmMinimapClick(e){if(pmDotDrag)return;const{x:mx,y:my}=canvasClientToLocal(previewMMCanvas,e.clientX,e.clientY);const scX=previewMMCanvas.width/GRID_W,scY=previewMMCanvas.height/GRID_H;const col=clamp(Math.floor(mx/scX/SQ),0,COLS-1),row=clamp(Math.floor(my/scY/SQ),0,ROWS-1);const i=rcSlot(row,col);if(!squares[i])jumpToSlot(i+1);}
+function pmMinimapClick(e){if(pmDotDrag)return;const{x:mx,y:my}=canvasClientToLocal(previewMMCanvas,e.clientX,e.clientY);const scX=previewMMCanvas.width/GRID_W,scY=previewMMCanvas.height/GRID_H;const col=clamp(Math.floor(mx/scX/BUF_SQ),0,COLS-1),row=clamp(Math.floor(my/scY/BUF_SQ),0,ROWS-1);const i=rcSlot(row,col);if(!squares[i])jumpToSlot(i+1);}
 
-function pmMinimapDown(e){if(chosenSlot===null)return;const scX=previewMMCanvas.width/GRID_W,scY=previewMMCanvas.height/GRID_H;const{row,col}=slotRC(chosenSlot);const dotX=col*SQ*scX+SQ*scX/2,dotY=row*SQ*scY+SQ*scY/2;const{x:mx,y:my}=canvasClientToLocal(previewMMCanvas,e.clientX,e.clientY);if(Math.hypot(mx-dotX,my-dotY)<=10){pmDotDrag=true;e.preventDefault();const onMove=ev=>{const{x:mx2,y:my2}=canvasClientToLocal(previewMMCanvas,ev.clientX,ev.clientY);const nc=clamp(Math.floor(mx2/scX/SQ),0,COLS-1),nr=clamp(Math.floor(my2/scY/SQ),0,ROWS-1);const ni=rcSlot(nr,nc);if(!squares[ni])trySelectSlot(ni);};const onUp=()=>{pmDotDrag=false;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);}}
+function pmMinimapDown(e){if(chosenSlot===null)return;const scX=previewMMCanvas.width/GRID_W,scY=previewMMCanvas.height/GRID_H;const{row,col}=slotRC(chosenSlot);const dotX=col*BUF_SQ*scX+BUF_SQ*scX/2,dotY=row*BUF_SQ*scY+BUF_SQ*scY/2;const{x:mx,y:my}=canvasClientToLocal(previewMMCanvas,e.clientX,e.clientY);if(Math.hypot(mx-dotX,my-dotY)<=10){pmDotDrag=true;e.preventDefault();const onMove=ev=>{const{x:mx2,y:my2}=canvasClientToLocal(previewMMCanvas,ev.clientX,ev.clientY);const nc=clamp(Math.floor(mx2/scX/BUF_SQ),0,COLS-1),nr=clamp(Math.floor(my2/scY/BUF_SQ),0,ROWS-1);const ni=rcSlot(nr,nc);if(!squares[ni])trySelectSlot(ni);};const onUp=()=>{pmDotDrag=false;document.removeEventListener('mousemove',onMove);document.removeEventListener('mouseup',onUp);};document.addEventListener('mousemove',onMove);document.addEventListener('mouseup',onUp);}}
 
 function trySelectSlot(newSlot){
   if(newSlot<0||newSlot>=TOTAL)return false;
