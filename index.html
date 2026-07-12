@@ -28,9 +28,14 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .rwb{display:flex;height:4px;flex-shrink:0;background:var(--red)}
 #main-layout{display:flex;gap:12px;padding:12px;align-items:flex-start;justify-content:center;flex:1}
 #viewport-wrap{display:flex;flex-direction:column;gap:0;flex-shrink:0;}
+#grid-ruler-row{display:flex;flex-direction:row;}
+#grid-ruler-corner{flex-shrink:0;}
+#grid-ruler-top{display:block;}
+#grid-ruler-body-row{display:flex;flex-direction:row;}
+#grid-ruler-left{display:block;flex-shrink:0;}
 #viewport-container{background:var(--white);border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.3);position:relative;user-select:none;overflow:visible}
 #mosaic-canvas{display:block;position:relative;width:1200px;height:1125px}
-.sq-tooltip{position:fixed;pointer-events:none;z-index:9999;background:rgba(20,20,20,.9);color:#fff;font-size:11px;padding:6px 9px;border-radius:5px;max-width:180px;line-height:1.5;white-space:pre-wrap;display:none;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.sq-tooltip{position:fixed;pointer-events:none;z-index:9999;background:#fff;color:#000;border:1.5px solid #B22234;font-size:11px;padding:6px 9px;border-radius:5px;max-width:180px;line-height:1.5;white-space:pre-wrap;display:none;box-shadow:0 2px 8px rgba(0,0,0,.4)}
 #board-loading{position:absolute;inset:0;background:rgba(245,245,245,.88);display:flex;align-items:center;justify-content:center;z-index:10;border-radius:4px}
 #board-loading-inner{display:flex;flex-direction:column;align-items:center;gap:10px}
 #board-loading-inner p{font-size:13px;color:var(--navy);font-weight:600}
@@ -254,12 +259,19 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 <div id="main-layout">
 
   <div id="viewport-wrap">
-    <div id="viewport-container" style="position:relative">
-      <canvas id="mosaic-canvas" role="application" aria-label="6000 Squares grid — 80 columns by 75 rows. Click an empty square to claim it." tabindex="0" width="2400" height="2250"></canvas>
-      <div id="board-loading" role="status" aria-label="Loading board" style="display: none;">
-        <div id="board-loading-inner">
-          <div class="spinner"></div>
-          <p>Loading board…</p>
+    <div id="grid-ruler-row">
+      <div id="grid-ruler-corner"></div>
+      <canvas id="grid-ruler-top"></canvas>
+    </div>
+    <div id="grid-ruler-body-row">
+      <canvas id="grid-ruler-left"></canvas>
+      <div id="viewport-container" style="position:relative">
+        <canvas id="mosaic-canvas" role="application" aria-label="6000 Squares grid — 80 columns by 75 rows. Click an empty square to claim it." tabindex="0" width="2400" height="2250"></canvas>
+        <div id="board-loading" role="status" aria-label="Loading board" style="display: none;">
+          <div id="board-loading-inner">
+            <div class="spinner"></div>
+            <p>Loading board…</p>
+          </div>
         </div>
       </div>
     </div>
@@ -297,8 +309,8 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
             <div class="draw-controls-row">
               <span class="brush-label">Brush Size</span>
               <div class="brush-row">
-                <input type="range" id="brush-size" min="1" max="80" value="8" aria-label="Brush size">
-                <input type="number" id="brush-size-num" min="1" max="80" value="8" aria-label="Brush size value">
+                <input type="range" id="brush-size" min="1" max="80" value="14" aria-label="Brush size">
+                <input type="number" id="brush-size-num" min="1" max="80" value="14" aria-label="Brush size value">
               </div>
               <span class="hex-display" id="active-hex" aria-live="polite">#8d66a9</span>
               <button class="grid-toggle-btn" id="btn-toggle-draw-grid" title="Toggle square grid overlay" aria-pressed="false">⊞ Grid</button>
@@ -449,7 +461,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
         </div>
         <div class="preview-minimap-col">
           <div class="preview-mm-label">Your Position:</div>
-          <canvas id="preview-mm-canvas" width="160" height="120" aria-label="Position on the full grid. Drag the red dot to reposition."></canvas>
+          <canvas id="preview-mm-canvas" width="128" height="120" aria-label="Position on the full grid. Drag the red dot to reposition."></canvas>
           <div class="preview-mm-sub">Drag red dot to reposition<br>(80×75 grid)</div>
         </div>
       </div>
@@ -478,7 +490,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
             <span aria-hidden="true">$</span>
             <input type="number" id="donation-input" min="0" max="10000" step="1" placeholder="0" aria-label="Optional donation in dollars">
           </div>
-          <div class="donation-hint">Any extra keeps 6000 Squares running.</div>
+          <div class="donation-hint">Any amount is appreciated</div>
         </div>
         <div class="pay-total-row">
           <span class="total-label">Total charged</span>
@@ -665,6 +677,9 @@ const $=id=>document.getElementById(id);
 const mosaicCanvas=$('mosaic-canvas'),mosaicCtx=mosaicCanvas.getContext('2d');
 mosaicCtx.imageSmoothingEnabled=true;mosaicCtx.imageSmoothingQuality='high';
 const vpContainer=$('viewport-container');
+const gridRulerTop=$('grid-ruler-top'),gridRulerTopCtx=gridRulerTop.getContext('2d');
+const gridRulerLeft=$('grid-ruler-left'),gridRulerLeftCtx=gridRulerLeft.getContext('2d');
+const gridRulerCorner=$('grid-ruler-corner');
 const boardLoadingEl=$('board-loading');
 const countDisplay=$('count-display'),tooltipEl=$('sq-tooltip');
 const drawCanvas=$('draw-canvas'),drawCtx=drawCanvas.getContext('2d',{willReadFrequently:true});
@@ -758,8 +773,8 @@ function validateUrl(str){if(!str||!str.trim())return null;const v=normalizeUrl(
 // field gets format-validated; a lone space skips that check entirely.
 function requireDescAndUrlFilled(descEl,urlEl,descErrId,urlErrId){
   let ok=true;
-  if(descEl.value.length===0){showInlineError(descErrId,'Please enter a description (type a single space if you want to leave it blank).');descEl.classList.add('field-error');ok=false;}
-  if(urlEl.value.length===0){showInlineError(urlErrId,'Please enter a URL (type a single space if you want to leave it blank).');urlEl.classList.add('field-error');ok=false;}
+  if(descEl.value.length===0){showInlineError(descErrId,'Please enter a description (type a single space if you want to have a blank pop-up.');descEl.classList.add('field-error');ok=false;}
+  if(urlEl.value.length===0){showInlineError(urlErrId,'Please enter a URL (type a single space if you do not want a link).');urlEl.classList.add('field-error');ok=false;}
   else if(urlEl.value.trim()){const err=validateUrl(urlEl.value);if(err){showInlineError(urlErrId,err);urlEl.classList.add('field-error');ok=false;}}
   return ok;
 }
@@ -1316,7 +1331,46 @@ function applyReservedSlots(newSet){
   if(reservedSlots.size)startReservedStripeAnimation();
 }
 
-function initMosaicCanvas(){mosaicCanvas.width=GRID_W;mosaicCanvas.height=GRID_H;mosaicCanvas.style.width=DISPLAY_W+'px';mosaicCanvas.style.height=DISPLAY_H+'px';mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(0,0,GRID_W,GRID_H);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5*RES_MULT;for(let c=0;c<=COLS;c++){mosaicCtx.beginPath();mosaicCtx.moveTo(c*BUF_SQ,0);mosaicCtx.lineTo(c*BUF_SQ,GRID_H);mosaicCtx.stroke();}for(let r=0;r<=ROWS;r++){mosaicCtx.beginPath();mosaicCtx.moveTo(0,r*BUF_SQ);mosaicCtx.lineTo(GRID_W,r*BUF_SQ);mosaicCtx.stroke();}for(let i=0;i<TOTAL;i++)drawEmptySquare(i);}
+function initMosaicCanvas(){mosaicCanvas.width=GRID_W;mosaicCanvas.height=GRID_H;mosaicCanvas.style.width=DISPLAY_W+'px';mosaicCanvas.style.height=DISPLAY_H+'px';mosaicCtx.fillStyle='#f5f5f5';mosaicCtx.fillRect(0,0,GRID_W,GRID_H);mosaicCtx.strokeStyle='rgba(200,200,200,0.6)';mosaicCtx.lineWidth=0.5*RES_MULT;for(let c=0;c<=COLS;c++){mosaicCtx.beginPath();mosaicCtx.moveTo(c*BUF_SQ,0);mosaicCtx.lineTo(c*BUF_SQ,GRID_H);mosaicCtx.stroke();}for(let r=0;r<=ROWS;r++){mosaicCtx.beginPath();mosaicCtx.moveTo(0,r*BUF_SQ);mosaicCtx.lineTo(GRID_W,r*BUF_SQ);mosaicCtx.stroke();}for(let i=0;i<TOTAL;i++)drawEmptySquare(i);drawGridRulers();}
+
+// Faint row/column index labels that sit above and to the left of the grid,
+// sized to always line up 1:1 with the mosaic canvas's current on-screen
+// cell size (which can shrink on narrow viewports via CSS max-width).
+function drawGridRulers(){
+  const rulerThickness=16;
+  const dispW=mosaicCanvas.getBoundingClientRect().width||DISPLAY_W;
+  const dispH=mosaicCanvas.getBoundingClientRect().height||DISPLAY_H;
+  const cellW=dispW/COLS,cellH=dispH/ROWS;
+  const dpr=window.devicePixelRatio||1;
+
+  gridRulerCorner.style.width=rulerThickness+'px';
+  gridRulerCorner.style.height=rulerThickness+'px';
+
+  gridRulerTop.width=dispW*dpr;gridRulerTop.height=rulerThickness*dpr;
+  gridRulerTop.style.width=dispW+'px';gridRulerTop.style.height=rulerThickness+'px';
+  gridRulerTopCtx.setTransform(dpr,0,0,dpr,0,0);
+  gridRulerTopCtx.clearRect(0,0,dispW,rulerThickness);
+  gridRulerTopCtx.font='8px Inter,sans-serif';
+  gridRulerTopCtx.fillStyle='rgba(120,120,120,.45)';
+  gridRulerTopCtx.textAlign='center';gridRulerTopCtx.textBaseline='middle';
+  for(let c=0;c<COLS;c++){
+    if(cellW<10&&(c+1)%5!==0&&c!==0)continue; // thin out labels if squeezed
+    gridRulerTopCtx.fillText(String(c+1),c*cellW+cellW/2,rulerThickness/2+1);
+  }
+
+  gridRulerLeft.width=rulerThickness*dpr;gridRulerLeft.height=dispH*dpr;
+  gridRulerLeft.style.width=rulerThickness+'px';gridRulerLeft.style.height=dispH+'px';
+  gridRulerLeftCtx.setTransform(dpr,0,0,dpr,0,0);
+  gridRulerLeftCtx.clearRect(0,0,rulerThickness,dispH);
+  gridRulerLeftCtx.font='8px Inter,sans-serif';
+  gridRulerLeftCtx.fillStyle='rgba(120,120,120,.45)';
+  gridRulerLeftCtx.textAlign='center';gridRulerLeftCtx.textBaseline='middle';
+  for(let r=0;r<ROWS;r++){
+    if(cellH<10&&(r+1)%5!==0&&r!==0)continue;
+    gridRulerLeftCtx.fillText(String(r+1),rulerThickness/2,r*cellH+cellH/2);
+  }
+}
+window.addEventListener('resize',()=>{if(mosaicCanvas.width)drawGridRulers();});
 
 // Squares that belong to a multi-square block all share ONE uploaded image
 // (sized blockCols*SQ x blockRows*SQ). Each square crops its own SQ x SQ
@@ -1472,7 +1526,7 @@ function scrollToGridPosition(gx,gy){const rect=mosaicCanvas.getBoundingClientRe
 
 function slotFromPoint(cx,cy){const{x:gx,y:gy}=canvasClientToLocal(mosaicCanvas,cx,cy);if(gx<0||gy<0||gx>=GRID_W||gy>=GRID_H)return -1;return rcSlot((gy/BUF_SQ)|0,(gx/BUF_SQ)|0);}
 
-function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i===tooltipSlot)return;tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];const tip=sq.desc||'';tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
+function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i!==tooltipSlot){tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];const tip=sq.desc||'';tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';}if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
 
 function vpMouseLeave(){tooltipEl.style.display='none';tooltipSlot=-1;}
 
@@ -1630,13 +1684,42 @@ function drawPreviewGrid(){
 
 function previewGridClick(e){const{x,y}=canvasClientToLocal(previewGridCanvas,e.clientX,e.clientY);const c=Math.floor((x-PREV_OFFX)/CELL_PX),row=Math.floor((y-PREV_OFFY)/CELL_PX);if(c<0||c>=PREV_COLS||row<0||row>=PREV_ROWS)return;const i=rcSlot(previewViewRow+row,previewViewCol+c);if(squares[i])return;if(reservedSlots.has(i)){showToast('This space is reserved');return;}trySelectSlot(i);}
 function shiftPreviewView(dc,dr){previewViewCol=clamp(previewViewCol+dc,0,COLS-PREV_COLS);previewViewRow=clamp(previewViewRow+dr,0,ROWS-PREV_ROWS);drawPreviewGrid();updatePrevMinimap();}
+
+// Press-and-hold on a preview nav arrow: step immediately, then keep
+// stepping on a timer that speeds up the longer the button stays held
+// (starts slow, ramps up to a fast auto-scroll).
+function setupPreviewNavHold(btnId,dc,dr){
+  const btn=$(btnId);
+  let holdTimer=null,holdStart=0;
+  const step=()=>{
+    shiftPreviewView(dc,dr);
+    const heldMs=performance.now()-holdStart;
+    // Interval shrinks from 260ms down to a floor of 40ms as hold time grows.
+    const interval=Math.max(40,260-heldMs/12);
+    holdTimer=setTimeout(step,interval);
+  };
+  const start=(e)=>{
+    e.preventDefault();
+    if(holdTimer)return;
+    holdStart=performance.now();
+    shiftPreviewView(dc,dr);
+    holdTimer=setTimeout(step,260);
+  };
+  const stop=()=>{
+    if(holdTimer){clearTimeout(holdTimer);holdTimer=null;}
+  };
+  btn.addEventListener('mousedown',start);
+  btn.addEventListener('touchstart',start,{passive:false});
+  ['mouseup','mouseleave','touchend','touchcancel'].forEach(ev=>btn.addEventListener(ev,stop));
+  window.addEventListener('blur',stop);
+}
 function updatePosLabel(){
   if(chosenSlot===null){posLabel.textContent='—';return;}
   const{row,col}=slotRC(chosenSlot);
   posLabel.textContent=`square #${chosenSlot+1} — ${blockCols}×${blockRows} at row ${row+1}, col ${col+1}`;
 }
 
-function updatePrevMinimap(){const cw=previewMMCanvas.width,ch=previewMMCanvas.height;const scX=cw/GRID_W,scY=ch/GRID_H;previewMMCtx.fillStyle='#e8e8e8';previewMMCtx.fillRect(0,0,cw,ch);for(let i=0;i<TOTAL;i++){if(!squares[i])continue;const{row,col}=slotRC(i);previewMMCtx.fillStyle='#C8950A';previewMMCtx.fillRect(col*BUF_SQ*scX,row*BUF_SQ*scY,Math.max(1,BUF_SQ*scX),Math.max(1,BUF_SQ*scY));}if(chosenSlot!==null){const{row,col}=slotRC(chosenSlot);const bw=blockCols*BUF_SQ*scX,bh=blockRows*BUF_SQ*scY;previewMMCtx.fillStyle='rgba(178,34,52,0.35)';previewMMCtx.fillRect(col*BUF_SQ*scX,row*BUF_SQ*scY,bw,bh);const dotX=col*BUF_SQ*scX+bw/2,dotY=row*BUF_SQ*scY+bh/2;previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.fillStyle='#B22234';previewMMCtx.fill();previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.strokeStyle='#fff';previewMMCtx.lineWidth=1.5;previewMMCtx.stroke();}}
+function updatePrevMinimap(){const cw=previewMMCanvas.width,ch=previewMMCanvas.height;const scX=cw/GRID_W,scY=ch/GRID_H;previewMMCtx.fillStyle='#e8e8e8';previewMMCtx.fillRect(0,0,cw,ch);for(let i=0;i<TOTAL;i++){if(!squares[i])continue;const{row,col}=slotRC(i);previewMMCtx.fillStyle='#cfcfcf';previewMMCtx.fillRect(col*BUF_SQ*scX,row*BUF_SQ*scY,Math.max(1,BUF_SQ*scX),Math.max(1,BUF_SQ*scY));}if(chosenSlot!==null){const{row,col}=slotRC(chosenSlot);const bw=blockCols*BUF_SQ*scX,bh=blockRows*BUF_SQ*scY;previewMMCtx.fillStyle='rgba(178,34,52,0.35)';previewMMCtx.fillRect(col*BUF_SQ*scX,row*BUF_SQ*scY,bw,bh);const dotX=col*BUF_SQ*scX+bw/2,dotY=row*BUF_SQ*scY+bh/2;previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.fillStyle='#B22234';previewMMCtx.fill();previewMMCtx.beginPath();previewMMCtx.arc(dotX,dotY,6,0,6.283);previewMMCtx.strokeStyle='#fff';previewMMCtx.lineWidth=1.5;previewMMCtx.stroke();}}
 
 function pmMinimapClick(e){if(pmDotDrag)return;const{x:mx,y:my}=canvasClientToLocal(previewMMCanvas,e.clientX,e.clientY);const scX=previewMMCanvas.width/GRID_W,scY=previewMMCanvas.height/GRID_H;const col=clamp(Math.floor(mx/scX/BUF_SQ),0,COLS-1),row=clamp(Math.floor(my/scY/BUF_SQ),0,ROWS-1);const i=rcSlot(row,col);if(!squares[i])jumpToSlot(i+1);}
 
@@ -1819,10 +1902,10 @@ function init(){
   $('btn-step1-back').addEventListener('click',()=>showStep(0));
 
   previewGridCanvas.addEventListener('click',previewGridClick);
-  $('prev-up').addEventListener('click',()=>shiftPreviewView(0,-1));
-  $('prev-down').addEventListener('click',()=>shiftPreviewView(0,1));
-  $('prev-left').addEventListener('click',()=>shiftPreviewView(-1,0));
-  $('prev-right').addEventListener('click',()=>shiftPreviewView(1,0));
+  setupPreviewNavHold('prev-up',0,-1);
+  setupPreviewNavHold('prev-down',0,1);
+  setupPreviewNavHold('prev-left',-1,0);
+  setupPreviewNavHold('prev-right',1,0);
 
   slotNumberInput.addEventListener('change',()=>{const v=+slotNumberInput.value;if(!trySelectSlot(v-1)&&chosenSlot!==null)slotNumberInput.value=chosenSlot+1;});
   slotNumberInput.addEventListener('keydown',e=>{if(e.key==='Enter'){const v=+slotNumberInput.value;if(!trySelectSlot(v-1)&&chosenSlot!==null)slotNumberInput.value=chosenSlot+1;}});
