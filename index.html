@@ -1,10 +1,9 @@
-<!doctype html>
 <html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';">
 <title>6000 Squares — Claim Your Square</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 :root{
@@ -249,7 +248,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
   </div>
   <div class="header-slogan">6000 15×15px squares · $3 per square · Own a piece of Modern-Day internet.</div>
   <div class="header-right">
-    <div class="sq-count-pill" aria-live="polite"><strong id="count-display">0</strong> / 6000 claimed</div>
+    <div class="sq-count-pill" aria-live="polite"><strong id="count-display">172</strong> / 6000 claimed</div>
     <button class="btn-claim" id="btn-claim">Claim a Square!</button>
   </div>
 </header>
@@ -260,13 +259,13 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 
   <div id="viewport-wrap">
     <div id="grid-ruler-row">
-      <div id="grid-ruler-corner"></div>
-      <canvas id="grid-ruler-top"></canvas>
+      <div id="grid-ruler-corner" style="width: 16px; height: 16px;"></div>
+      <canvas id="grid-ruler-top" width="1200" height="16" style="width: 1200px; height: 16px;"></canvas>
     </div>
     <div id="grid-ruler-body-row">
-      <canvas id="grid-ruler-left"></canvas>
+      <canvas id="grid-ruler-left" width="16" height="1125" style="width: 16px; height: 1125px;"></canvas>
       <div id="viewport-container" style="position:relative">
-        <canvas id="mosaic-canvas" role="application" aria-label="6000 Squares grid — 80 columns by 75 rows. Click an empty square to claim it." tabindex="0" width="2400" height="2250"></canvas>
+        <canvas id="mosaic-canvas" role="application" aria-label="6000 Squares grid — 80 columns by 75 rows. Click an empty square to claim it." tabindex="0" width="2400" height="2250" style="width: 1200px; height: 1125px;"></canvas>
         <div id="board-loading" role="status" aria-label="Loading board" style="display: none;">
           <div id="board-loading-inner">
             <div class="spinner"></div>
@@ -279,7 +278,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 
 </div>
 
-<div class="modal-overlay" id="claim-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-id">
+<div class="modal-overlay open" id="claim-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-id">
 
   <div class="modal-box">
     <button class="modal-close" id="claim-close" aria-label="Close modal">✕</button>
@@ -287,22 +286,22 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
     <!-- STEP 0: Draw / Upload -->
     <div id="step-0" style="display: block;">
 
-      <div class="modal-title" id="modal-title-id">Claim Your 3×2 Space</div>
+      <div class="modal-title" id="modal-title-id">Claim Your Square</div>
       <div class="modal-sub">Draw or upload an image, then click Preview to confirm your spot and pay.</div>
 
       <!-- Block size picker -->
       <div class="block-picker-section">
         <div class="block-picker-label">How many squares?</div>
-        <div class="block-picker-grid" id="block-picker-grid" role="radiogroup" aria-label="Block size"></div>
+        <div class="block-picker-grid" id="block-picker-grid" role="radiogroup" aria-label="Block size"><button class="block-option selected" role="radio" aria-checked="true" aria-disabled="false" aria-label="1 square — $3"><div class="block-shape-preview" style="grid-template-columns: repeat(1, 9px); grid-template-rows: repeat(1, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">1 square</div><div class="block-option-price">$3</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="2 wide — $6"><div class="block-shape-preview" style="grid-template-columns: repeat(2, 9px); grid-template-rows: repeat(1, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">2 wide</div><div class="block-option-price">$6</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="2 tall — $6"><div class="block-shape-preview" style="grid-template-columns: repeat(1, 9px); grid-template-rows: repeat(2, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">2 tall</div><div class="block-option-price">$6</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="4 squares — $12"><div class="block-shape-preview" style="grid-template-columns: repeat(2, 9px); grid-template-rows: repeat(2, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">4 squares</div><div class="block-option-price">$12</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="6 wide — $18"><div class="block-shape-preview" style="grid-template-columns: repeat(3, 9px); grid-template-rows: repeat(2, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">6 wide</div><div class="block-option-price">$18</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="6 tall — $18"><div class="block-shape-preview" style="grid-template-columns: repeat(2, 9px); grid-template-rows: repeat(3, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">6 tall</div><div class="block-option-price">$18</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="9 squares — $27"><div class="block-shape-preview" style="grid-template-columns: repeat(3, 9px); grid-template-rows: repeat(3, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">9 squares</div><div class="block-option-price">$27</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="12 wide — $36"><div class="block-shape-preview" style="grid-template-columns: repeat(4, 9px); grid-template-rows: repeat(3, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">12 wide</div><div class="block-option-price">$36</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="12 tall — $36"><div class="block-shape-preview" style="grid-template-columns: repeat(3, 9px); grid-template-rows: repeat(4, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">12 tall</div><div class="block-option-price">$36</div></button><button class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="16 squares — $48"><div class="block-shape-preview" style="grid-template-columns: repeat(4, 9px); grid-template-rows: repeat(4, 9px);"><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div><div class="bsp-cell" style="width: 9px; height: 9px;"></div></div><div class="block-option-label">16 squares</div><div class="block-option-price">$48</div></button><button type="button" class="block-option" role="radio" aria-checked="false" aria-disabled="false" aria-label="Custom size — pick any rectangle up to 6 by 6"><div style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; border: 1.5px dashed rgb(170, 170, 170); border-radius: 3px; color: rgb(136, 136, 136); font-size: 18px; font-weight: 700;">＋</div><div class="block-option-label">Custom size</div><div class="block-option-price">Pick →</div></button></div>
       </div>
 
       <div class="tab-row" role="tablist">
-        <button class="tab-btn" id="tab-draw-btn" role="tab" aria-selected="false" aria-controls="panel-draw">Draw</button>
-        <button class="tab-btn active" id="tab-upload-btn" role="tab" aria-selected="true" aria-controls="panel-upload">Upload Image</button>
+        <button class="tab-btn active" id="tab-draw-btn" role="tab" aria-selected="true" aria-controls="panel-draw">Draw</button>
+        <button class="tab-btn" id="tab-upload-btn" role="tab" aria-selected="false" aria-controls="panel-upload">Upload Image</button>
       </div>
 
       <!-- Draw panel -->
-      <div id="panel-draw" role="tabpanel" aria-labelledby="tab-draw-btn" style="display: none;">
+      <div id="panel-draw" role="tabpanel" aria-labelledby="tab-draw-btn" style="display: block;">
         <div class="step0-body">
           <div class="draw-left">
             <div class="section-heading">Draw on your square</div>
@@ -312,12 +311,12 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
                 <input type="range" id="brush-size" min="1" max="80" value="14" aria-label="Brush size">
                 <input type="number" id="brush-size-num" min="1" max="80" value="14" aria-label="Brush size value">
               </div>
-              <span class="hex-display" id="active-hex" aria-live="polite">#8d66a9</span>
+              <span class="hex-display" id="active-hex" aria-live="polite">#B22234</span>
               <button class="grid-toggle-btn" id="btn-toggle-draw-grid" title="Toggle square grid overlay" aria-pressed="false">⊞ Grid</button>
             </div>
             <div class="picker-wrap">
-              <canvas id="sv-canvas" height="130" aria-label="Saturation/brightness picker. Use hex input below for keyboard access." width="260"></canvas>
-              <canvas id="spectrum-bar" height="16" aria-label="Hue spectrum picker." width="260"></canvas>
+              <canvas id="sv-canvas" height="130" aria-label="Saturation/brightness picker. Use hex input below for keyboard access." width="388"></canvas>
+              <canvas id="spectrum-bar" height="16" aria-label="Hue spectrum picker." width="388"></canvas>
               <div id="shade-picker-wrap" class="open">
                 <div class="color-input-row">
                   <label for="color-text-input">HEX </label>
@@ -327,9 +326,9 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
             </div>
             <div class="canvas-tools-row">
               <div class="draw-canvas-wrap">
-                <canvas id="draw-canvas" width="600" height="400" aria-label="Drawing canvas"></canvas>
-                <canvas id="draw-grid-overlay" aria-hidden="true" width="0" height="0" style="width: 0px; height: 0px; left: 0px; top: 0px; display: none;"></canvas>
-                <div id="brush-cursor" aria-hidden="true" style="display: none; width: 80.6015px; height: 80.6015px; left: 526px; top: 833px;"></div>
+                <canvas id="draw-canvas" width="400" height="400" aria-label="Drawing canvas"></canvas>
+                <canvas id="draw-grid-overlay" aria-hidden="true" width="350" height="350" style="width: 349.5px; height: 349.5px; left: 0px; top: 0px; display: none;"></canvas>
+                <div id="brush-cursor" aria-hidden="true" style="display: none; width: 12.2325px; height: 12.2325px; left: 602px; top: 684px;"></div>
               </div>
               <div class="tool-col" role="toolbar" aria-label="Drawing tools">
                 <canvas id="active-swatch" class="active-swatch-btn" width="32" height="32" title="Current color" aria-label="Current color swatch"></canvas>
@@ -365,48 +364,50 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
           </div>
 
           <div class="step0-right">
-            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. <b class="rules-emphasis">Violations will be removed.</b>
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam* · No graphic violence. <b class="rules-emphasis">Violations will be removed.</b>
 </div>
             <div class="rules-footnote">*A user can upload more than once, but each upload must look significantly different.</div>
             <div>
               <label class="field-label" for="draw-desc">Image Description*</label>
-              <input type="text" id="draw-desc" class="field-input" maxlength="160" placeholder="e.g. Click here to check us out!" aria-describedby="draw-desc-err">
-              <div class="inline-error" id="draw-desc-err" role="alert"></div>
+              <input type="text" id="draw-desc" class="field-input field-error" maxlength="160" placeholder="e.g. Click here to check us out!" aria-describedby="draw-desc-err">
+              <div class="inline-error show" id="draw-desc-err" role="alert">Please enter a description (type a single space if you want to have a blank pop-up).</div>
             </div>
             <div>
               <label class="field-label" for="draw-url">URL**</label>
-              <input type="text" id="draw-url" class="field-input" maxlength="300" placeholder="yourlink.com" aria-describedby="draw-url-err">
-              <div class="inline-error" id="draw-url-err" role="alert"></div>
+              <input type="text" id="draw-url" class="field-input field-error" maxlength="300" placeholder="yourlink.com" aria-describedby="draw-url-err">
+              <div class="inline-error show" id="draw-url-err" role="alert">Please enter a URL (type a single space if you do not want to add a link).</div>
             </div>
-            <div class="field-footnotes">*Description: Add a message that people will see when they hover over your square(s).<br><br>**URL: Add a link that people will be taken to when they click on your square(s).</div>
+            <div class="field-footnotes">*Description: Add a message that people will see when they hover over your square(s).<br><br>**URL: Add a link that people will be taken to when they click on your square(s).
+Link will be active upon revision.
+</div>
           </div>
         </div>
         <div class="step0-footer"><button class="btn-primary" id="btn-to-preview-draw">Preview →</button></div>
       </div>
 
       <!-- Upload panel -->
-      <div id="panel-upload" role="tabpanel" aria-labelledby="tab-upload-btn" style="display: block;">
+      <div id="panel-upload" role="tabpanel" aria-labelledby="tab-upload-btn" style="display: none;">
         <div class="step0-body">
           <div class="upload-left">
             <div class="section-heading">Upload an Image</div>
             <div class="upload-instructions">Move your image to your liking within the square.<br>Only what is shown in the square will appear on the website.<br>Transparent backgrounds will appear as white on the website.</div>
-            <div class="upload-controls" id="upload-ctrl-row" style="display: flex;">
+            <div class="upload-controls" id="upload-ctrl-row" style="display: none;">
               <label for="crop-scale">Scale</label>
               <input type="range" id="crop-scale" min="30" max="400" value="100" aria-label="Image scale">
               <button id="crop-reset">Reset</button>
               <button id="crop-remove">Remove</button>
               <button class="grid-toggle-btn" id="btn-toggle-upload-grid" title="Toggle square grid overlay" aria-pressed="false">⊞ Grid</button>
             </div>
-            <div id="upload-zone" role="button" tabindex="0" aria-label="Upload image — click or press Enter to browse, or drag and drop here" style="display: none; width: 600px; height: 400px;">
+            <div id="upload-zone" role="button" tabindex="0" aria-label="Upload image — click or press Enter to browse, or drag and drop here" style="display: flex; width: 400px; height: 400px;">
               <p>Click to browse or drag and drop</p>
               <strong>JPG, PNG, WEBP · Max 5 MB</strong>
             </div>
             <input type="file" id="upload-file" accept="image/jpeg,image/png,image/webp" aria-label="Choose image file">
             <div class="inline-error" id="upload-file-err" role="alert"></div>
-            <div id="crop-ui" style="display: flex;">
-              <div id="crop-viewport" aria-label="Crop area — drag to pan, slider to zoom" style="width: 600px; height: 400px;">
+            <div id="crop-ui" style="display: none;">
+              <div id="crop-viewport" aria-label="Crop area — drag to pan, slider to zoom" style="width: 400px; height: 400px;">
                 <img id="crop-img" src="" alt="Uploaded image for cropping" style="width: 0px; height: 0px; left: 0px; top: 0px;">
-                <canvas id="upload-grid-overlay" aria-hidden="true" width="596" height="396" style="width: 596px; height: 396px; display: none;"></canvas>
+                <canvas id="upload-grid-overlay" aria-hidden="true" width="300" height="300" style="width: 300px; height: 300px; display: none;"></canvas>
               </div>
               <div class="crop-hint">Drag to pan · Slider to zoom · Only visible area saves</div>
             </div>
@@ -476,13 +477,13 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
       <div class="slot-taken-msg" id="slot-taken-msg" role="alert">Part of this block is taken — try a different position.</div>
       <button class="btn-goto-empty" id="btn-goto-empty">Go to earliest unclaimed square</button>
 
-      <div class="preview-info-box" id="preview-info-box">Your space covers <strong>45×30px</strong> on the grid (6 squares). The preview is an enlarged representation.</div>
+      <div class="preview-info-box" id="preview-info-box">Your space covers <strong>15×15px</strong> on the grid (1 square). The preview is an enlarged representation.</div>
 
       <div class="payment-section">
         <h3>Payment</h3>
         <div class="pay-row">
-          <label id="pay-row-label">Claim 6 squares (3×2)</label>
-          <div style="display:flex;align-items:center;gap:8px"><span class="pay-required">Required</span><span class="pay-amount" id="pay-amount">$18.00</span></div>
+          <label id="pay-row-label">Claim a square</label>
+          <div style="display:flex;align-items:center;gap:8px"><span class="pay-required">Required</span><span class="pay-amount" id="pay-amount">$3.00</span></div>
         </div>
         <div class="donation-row">
           <label for="donation-input">Support the project <span style="color:#bbb;font-size:11px">(optional)</span></label>
@@ -494,7 +495,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
         </div>
         <div class="pay-total-row">
           <span class="total-label">Total charged</span>
-          <span class="total-amt" id="total-display" aria-live="polite">$18.00</span>
+          <span class="total-amt" id="total-display" aria-live="polite">$3.00</span>
         </div>
         <div class="stripe-badge">Powered by <strong style="color:#635BFF">Stripe</strong></div>
       </div>
@@ -773,7 +774,7 @@ function validateUrl(str){if(!str||!str.trim())return null;const v=normalizeUrl(
 // field gets format-validated; a lone space skips that check entirely.
 function requireDescAndUrlFilled(descEl,urlEl,descErrId,urlErrId){
   let ok=true;
-  if(descEl.value.length===0){showInlineError(descErrId,'Please enter a description (type a single space if you want to have a blank pop-up.');descEl.classList.add('field-error');ok=false;}
+  if(descEl.value.length===0){showInlineError(descErrId,'Please enter a description (type a single space if you want to have a blank pop-up).');descEl.classList.add('field-error');ok=false;}
   if(urlEl.value.length===0){showInlineError(urlErrId,'Please enter a URL (type a single space if you do not want a link).');urlEl.classList.add('field-error');ok=false;}
   else if(urlEl.value.trim()){const err=validateUrl(urlEl.value);if(err){showInlineError(urlErrId,err);urlEl.classList.add('field-error');ok=false;}}
   return ok;
@@ -1932,5 +1933,7 @@ function init(){
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 
 })();</script>
+
+<script defer="" src="https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496" integrity="sha512-ZE9pZaUXND66v380QUtch/5sE9tPFh2zg45pR2PB0CVkCtOREv2AJKkSidISWkysEuQ0EH8faUU5du78bx87UQ==" data-cf-beacon="{&quot;version&quot;:&quot;2024.11.0&quot;,&quot;token&quot;:&quot;9852f5a4a0bc4869b4262a94016c8b02&quot;,&quot;r&quot;:1,&quot;server_timing&quot;:{&quot;name&quot;:{&quot;cfCacheStatus&quot;:true,&quot;cfEdge&quot;:true,&quot;cfExtPri&quot;:true,&quot;cfL4&quot;:true,&quot;cfOrigin&quot;:true,&quot;cfSpeedBrain&quot;:true},&quot;location_startswith&quot;:null}}" crossorigin="anonymous"></script>
 
 </body></html>
