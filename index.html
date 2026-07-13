@@ -2,7 +2,12 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';">
-<title>6000 Squares — Claim Your Square</title>
+<title>6000 Squares - Own a piece of the internet!</title>
+<meta name="description" content="The website of notebook_92, a YouTuber and part-time programmer, who hopes to get a decent digital setup by selling 6000 squares of internet ad space for $3 each. Totally unrelated to The Million Dollar Homepage.">
+<meta property="og:title" content="6000 Squares - Own a piece of the internet!">
+<meta property="og:description" content="The website of notebook_92, a YouTuber and part-time programmer, who hopes to get a decent digital setup by selling 6000 squares of internet ad space for $3 each. Totally unrelated to The Million Dollar Homepage.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://6000squares.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
@@ -20,6 +25,10 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .logo-main span{color:#ef5350}
 .header-slogan{font-size:14px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--white);flex:1 1 auto;min-width:0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 14px;z-index:1}
 .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-left:auto}
+.header-tabs-right{position:absolute;top:calc(100% + 10px);right:14px;display:flex;flex-direction:column;align-items:flex-end;gap:4px;z-index:2}
+.header-tab{background:#4a4a4a;color:#fff;font-size:10.5px;font-weight:600;letter-spacing:.3px;text-decoration:none;padding:4px 11px;border-radius:4px;opacity:1;transition:background .15s;white-space:nowrap;border:none;cursor:pointer;font-family:'Inter',sans-serif}
+.header-tab:hover,.header-tab:focus-visible{background:#2e2e2e}
+@media(max-width:700px){.header-tabs-right{display:none}}
 .sq-count-pill{background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.25);border-radius:999px;padding:8px 16px;font-size:13px;color:rgba(255,255,255,.85);white-space:nowrap}
 .sq-count-pill strong{color:var(--gold);font-size:15px}
 .btn-claim{background:var(--red);color:#fff;border:none;padding:9px 20px;font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;cursor:pointer;border-radius:var(--radius);transition:background .15s}
@@ -32,6 +41,7 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 #grid-ruler-top{display:block;}
 #grid-ruler-body-row{display:flex;flex-direction:row;}
 #grid-ruler-left{display:block;flex-shrink:0;}
+#grid-ruler-row.ruler-hidden,#grid-ruler-left.ruler-hidden{visibility:hidden;}
 #viewport-container{background:var(--white);border-radius:4px;box-shadow:0 2px 12px rgba(0,0,0,.3);position:relative;user-select:none;overflow:visible}
 #mosaic-canvas{display:block;position:relative;width:1200px;height:1125px}
 .sq-tooltip{position:fixed;pointer-events:none;z-index:9999;background:#fff;color:#000;border:1.5px solid #B22234;font-size:11px;padding:6px 9px;border-radius:5px;max-width:180px;line-height:1.5;white-space:pre-wrap;display:none;box-shadow:0 2px 8px rgba(0,0,0,.4)}
@@ -143,8 +153,10 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .preview-body{display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start}
 .preview-grid-area{display:flex;flex-direction:column;align-items:center;gap:6px}
 .preview-nav-row{display:flex;align-items:center;gap:10px;width:100%}
-.preview-nav-btn{background:none;border:none;cursor:pointer;font-size:24px;color:var(--red);line-height:1;padding:4px 8px;border-radius:3px;transition:background .12s}
+.preview-nav-btn{background:none;border:none;cursor:pointer;font-size:24px;color:var(--red);line-height:1;padding:4px 8px;border-radius:3px;transition:background .12s,color .12s}
 .preview-nav-btn:hover{background:rgba(178,34,52,.1)}
+.preview-nav-btn.at-edge{color:#bbb;cursor:default}
+.preview-nav-btn.at-edge:hover{background:none}
 #preview-grid-canvas{display:block;border:1.5px solid #ddd;border-radius:3px;image-rendering:auto;flex:1}
 .preview-minimap-col{display:flex;flex-direction:column;align-items:center;gap:4px}
 .preview-mm-label{font-size:11px;color:#555;font-weight:600;text-align:center}
@@ -246,10 +258,14 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
   <div class="logo-wrap">
     <div class="logo-main">6000<span>Squares</span></div>
   </div>
-  <div class="header-slogan">6000 15×15px squares · $3 per square · Own a piece of Modern-Day internet.</div>
+  <div class="header-slogan">6000 30×30px squares · $3 per square · Own a piece of the internet!</div>
   <div class="header-right">
     <div class="sq-count-pill" aria-live="polite"><strong id="count-display">172</strong> / 6000 claimed</div>
     <button class="btn-claim" id="btn-claim">Claim a Square!</button>
+  </div>
+  <div class="header-tabs-right">
+    <button type="button" class="header-tab" id="btn-copy-email">email me: contact@6000squares.com</button>
+    <a class="header-tab" href="https://www.youtube.com/@notebook_92" target="_blank" rel="noopener noreferrer">follow @notebook_92</a>
   </div>
 </header>
 
@@ -258,12 +274,12 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 <div id="main-layout">
 
   <div id="viewport-wrap">
-    <div id="grid-ruler-row">
+    <div id="grid-ruler-row" class="ruler-hidden">
       <div id="grid-ruler-corner" style="width: 16px; height: 16px;"></div>
       <canvas id="grid-ruler-top" width="1200" height="16" style="width: 1200px; height: 16px;"></canvas>
     </div>
     <div id="grid-ruler-body-row">
-      <canvas id="grid-ruler-left" width="16" height="1125" style="width: 16px; height: 1125px;"></canvas>
+      <canvas id="grid-ruler-left" width="16" height="1125" style="width: 16px; height: 1125px;" class="ruler-hidden"></canvas>
       <div id="viewport-container" style="position:relative">
         <canvas id="mosaic-canvas" role="application" aria-label="6000 Squares grid — 80 columns by 75 rows. Click an empty square to claim it." tabindex="0" width="2400" height="2250" style="width: 1200px; height: 1125px;"></canvas>
         <div id="board-loading" role="status" aria-label="Loading board" style="display: none;">
@@ -278,7 +294,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 
 </div>
 
-<div class="modal-overlay open" id="claim-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-id">
+<div class="modal-overlay" id="claim-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title-id">
 
   <div class="modal-box">
     <button class="modal-close" id="claim-close" aria-label="Close modal">✕</button>
@@ -364,9 +380,8 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
           </div>
 
           <div class="step0-right">
-            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam* · No graphic violence. <b class="rules-emphasis">Violations will be removed.</b>
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No graphic violence. <b class="rules-emphasis">Violations will be removed.</b>
 </div>
-            <div class="rules-footnote">*A user can upload more than once, but each upload must look significantly different.</div>
             <div>
               <label class="field-label" for="draw-desc">Image Description*</label>
               <input type="text" id="draw-desc" class="field-input field-error" maxlength="160" placeholder="e.g. Click here to check us out!" aria-describedby="draw-desc-err">
@@ -424,8 +439,7 @@ Link will be active upon revision.
           </div>
 
           <div class="step0-right">
-            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No spam · No graphic violence. <b class="rules-emphasis">Violations will be removed.</b></div>
-            <div class="rules-footnote">A user can upload more than once, but each upload must look significantly different.</div>
+            <div class="rules-box"><strong>Content Rules</strong> No nudity · No hate speech · No illegal content · No graphic violence. <b class="rules-emphasis">Violations will be removed.</b></div>
             <div>
               <label class="field-label" for="upload-desc">Image Description*</label>
               <input type="text" id="upload-desc" class="field-input" maxlength="160" placeholder="e.g. Click here to check us out!" aria-describedby="upload-desc-err">
@@ -436,7 +450,9 @@ Link will be active upon revision.
               <input type="text" id="upload-url" class="field-input" maxlength="300" placeholder="yourlink.com" aria-describedby="upload-url-err">
               <div class="inline-error" id="upload-url-err" role="alert"></div>
             </div>
-            <div class="field-footnotes">*Description: Add a message that people will see when they hover over your square(s).<br><br>**URL: Add a link that people will be taken to when they click on your square(s).</div>
+            <div class="field-footnotes">*Description: Add a message that people will see when they hover over your square(s).<br><br>**URL: Add a link that people will be taken to when they click on your square(s).
+Link will be active upon revision.
+</div>
           </div>
         </div>
         <div class="step0-footer"><button class="btn-primary" id="btn-to-preview-upload">Preview →</button></div>
@@ -477,7 +493,7 @@ Link will be active upon revision.
       <div class="slot-taken-msg" id="slot-taken-msg" role="alert">Part of this block is taken — try a different position.</div>
       <button class="btn-goto-empty" id="btn-goto-empty">Go to earliest unclaimed square</button>
 
-      <div class="preview-info-box" id="preview-info-box">Your space covers <strong>15×15px</strong> on the grid (1 square). The preview is an enlarged representation.</div>
+      <div class="preview-info-box" id="preview-info-box">Your space covers <strong>30×30px</strong> on the grid (1 square). The preview is an enlarged representation.</div>
 
       <div class="payment-section">
         <h3>Payment</h3>
@@ -535,7 +551,7 @@ Link will be active upon revision.
 </div>
 
 <div id="toast" role="status" aria-live="polite"></div>
-<footer>© 2025 6000Squares.com — Every square tells a story.</footer>
+<footer>6000 Squares © 2026 notebook_92. All rights reserved. I am not responsible for the content of external sites. Images featured on the grid are © of their respective owners.</footer>
 
 <script>(function(){'use strict';
 
@@ -575,7 +591,7 @@ const DISPLAY_W=COLS*SQ,DISPLAY_H=ROWS*SQ;
 // vs. the display size — like a Retina 2x/3x asset. BUF_SQ is the resolution
 // used for the mosaic canvas's backing store and for captured/stored square
 // images, so a 1×1 square is captured at 30×30 source pixels instead of
-// 15×15, then the browser downsamples it back down to its unchanged 15×15
+// 30×30, then the browser downsamples it back down to its unchanged 30×30
 // on-screen footprint (DISPLAY_W×DISPLAY_H) — same principle as a Retina
 // display: more pixels packed into the same physical space, sharper result.
 const RES_MULT=2;
@@ -678,6 +694,8 @@ const $=id=>document.getElementById(id);
 const mosaicCanvas=$('mosaic-canvas'),mosaicCtx=mosaicCanvas.getContext('2d');
 mosaicCtx.imageSmoothingEnabled=true;mosaicCtx.imageSmoothingQuality='high';
 const vpContainer=$('viewport-container');
+const mainLayoutEl=$('main-layout');
+const gridRulerRow=$('grid-ruler-row');
 const gridRulerTop=$('grid-ruler-top'),gridRulerTopCtx=gridRulerTop.getContext('2d');
 const gridRulerLeft=$('grid-ruler-left'),gridRulerLeftCtx=gridRulerLeft.getContext('2d');
 const gridRulerCorner=$('grid-ruler-corner');
@@ -699,6 +717,7 @@ const cropUI=$('crop-ui'),cropViewport=$('crop-viewport'),cropImg=$('crop-img');
 const cropScale=$('crop-scale'),uploadCtrlRow=$('upload-ctrl-row');
 const previewGridCanvas=$('preview-grid-canvas'),previewGridCtx=previewGridCanvas.getContext('2d');
 const previewMMCanvas=$('preview-mm-canvas'),previewMMCtx=previewMMCanvas.getContext('2d');
+const prevNavUp=$('prev-up'),prevNavDown=$('prev-down'),prevNavLeft=$('prev-left'),prevNavRight=$('prev-right');
 const posLabel=$('sq-position-label'),slotNumberInput=$('slot-number-input');
 const slotTakenMsg=$('slot-taken-msg'),btnGotoEmpty=$('btn-goto-empty');
 const submitBtn=$('submit-final-btn'),submitBtnLabel=$('submit-btn-label');
@@ -775,7 +794,7 @@ function validateUrl(str){if(!str||!str.trim())return null;const v=normalizeUrl(
 function requireDescAndUrlFilled(descEl,urlEl,descErrId,urlErrId){
   let ok=true;
   if(descEl.value.length===0){showInlineError(descErrId,'Please enter a description (type a single space if you want to have a blank pop-up).');descEl.classList.add('field-error');ok=false;}
-  if(urlEl.value.length===0){showInlineError(urlErrId,'Please enter a URL (type a single space if you do not want a link).');urlEl.classList.add('field-error');ok=false;}
+  if(urlEl.value.length===0){showInlineError(urlErrId,'Please enter a URL (type a single space if you do not want to add a link).');urlEl.classList.add('field-error');ok=false;}
   else if(urlEl.value.trim()){const err=validateUrl(urlEl.value);if(err){showInlineError(urlErrId,err);urlEl.classList.add('field-error');ok=false;}}
   return ok;
 }
@@ -1149,7 +1168,7 @@ function updateModalTitle(){
   const payRowLabel=$('pay-row-label');
   if(payRowLabel)payRowLabel.textContent=chosenBlock.count===1?'Claim a square':`Claim ${chosenBlock.count} squares (${chosenBlock.cols}×${chosenBlock.rows})`;
   const piBox=$('preview-info-box');
-  if(piBox){const pixW=bc*SQ,pixH=br*SQ;piBox.innerHTML=`Your space covers <strong>${pixW}×${pixH}px</strong> on the grid (${count} square${count>1?'s':''}). The preview is an enlarged representation.`;}
+  if(piBox){const pixW=bc*BUF_SQ,pixH=br*BUF_SQ;piBox.innerHTML=`Your space covers <strong>${pixW}×${pixH}px</strong> on the grid (${count} square${count>1?'s':''}). The preview is an enlarged representation.`;}
   updateTotal();
 }
 
@@ -1183,7 +1202,7 @@ function onDrawEnd(){isDrawing=false;}
 function onDrawLeave(){hideBrushCursor();hideLoupe();}
 
 // ── captureImageData: renders at the ACTUAL mosaic pixel size (blockCols*SQ ×
-// blockRows*SQ, i.e. as small as 15×15) instead of the large editing-canvas
+// blockRows*SQ, i.e. as small as 30×30) instead of the large editing-canvas
 // size, then encodes as WebP (falls back to JPEG if WebP unsupported), with
 // quality stepped down until the result is comfortably small. Images are
 // never displayed larger than bc*SQ × br*SQ px on the site, so there is no
@@ -1219,7 +1238,7 @@ function captureImageData(scale=1){
   const bc=blockCols,br=blockRows;
   // Output at the true on-mosaic pixel size, not the (much larger) editing
   // canvas size. This is the single biggest lever on stored file size: e.g.
-  // a 1×1 square only ever needs to be 15×15px, and even a 10×10 block only
+  // a 1×1 square only ever needs to be 30×30px, and even a 10×10 block only
   // needs 150×150px — never the 600×400 the editor uses for a nice UX.
   // `scale` bumps this up for preview-only renders (see PREVIEW_RES_MULT);
   // it must stay 1 for the actual stored/submitted image.
@@ -1342,7 +1361,9 @@ function drawGridRulers(){
   const dispW=mosaicCanvas.getBoundingClientRect().width||DISPLAY_W;
   const dispH=mosaicCanvas.getBoundingClientRect().height||DISPLAY_H;
   const cellW=dispW/COLS,cellH=dispH/ROWS;
-  const dpr=window.devicePixelRatio||1;
+  // Floor of 2x even on standard (non-Retina) displays — at a tiny 8px font
+  // size, 1x backing-store pixels make the digits look soft/pixelated.
+  const dpr=Math.max(window.devicePixelRatio||1,2);
 
   gridRulerCorner.style.width=rulerThickness+'px';
   gridRulerCorner.style.height=rulerThickness+'px';
@@ -1351,8 +1372,8 @@ function drawGridRulers(){
   gridRulerTop.style.width=dispW+'px';gridRulerTop.style.height=rulerThickness+'px';
   gridRulerTopCtx.setTransform(dpr,0,0,dpr,0,0);
   gridRulerTopCtx.clearRect(0,0,dispW,rulerThickness);
-  gridRulerTopCtx.font='8px Inter,sans-serif';
-  gridRulerTopCtx.fillStyle='rgba(120,120,120,.45)';
+  gridRulerTopCtx.font='bold 8px Inter,sans-serif';
+  gridRulerTopCtx.fillStyle='#333333';
   gridRulerTopCtx.textAlign='center';gridRulerTopCtx.textBaseline='middle';
   for(let c=0;c<COLS;c++){
     if(cellW<10&&(c+1)%5!==0&&c!==0)continue; // thin out labels if squeezed
@@ -1363,8 +1384,8 @@ function drawGridRulers(){
   gridRulerLeft.style.width=rulerThickness+'px';gridRulerLeft.style.height=dispH+'px';
   gridRulerLeftCtx.setTransform(dpr,0,0,dpr,0,0);
   gridRulerLeftCtx.clearRect(0,0,rulerThickness,dispH);
-  gridRulerLeftCtx.font='8px Inter,sans-serif';
-  gridRulerLeftCtx.fillStyle='rgba(120,120,120,.45)';
+  gridRulerLeftCtx.font='bold 8px Inter,sans-serif';
+  gridRulerLeftCtx.fillStyle='#333333';
   gridRulerLeftCtx.textAlign='center';gridRulerLeftCtx.textBaseline='middle';
   for(let r=0;r<ROWS;r++){
     if(cellH<10&&(r+1)%5!==0&&r!==0)continue;
@@ -1372,6 +1393,27 @@ function drawGridRulers(){
   }
 }
 window.addEventListener('resize',()=>{if(mosaicCanvas.width)drawGridRulers();});
+(function watchDprChanges(){
+  let lastDpr=window.devicePixelRatio||1;
+  const check=()=>{
+    const cur=window.devicePixelRatio||1;
+    if(cur!==lastDpr){lastDpr=cur;if(mosaicCanvas.width)drawGridRulers();}
+    matchMedia(`(resolution: ${cur}dppx)`).addEventListener('change',check,{once:true});
+  };
+  matchMedia(`(resolution: ${lastDpr}dppx)`).addEventListener('change',check,{once:true});
+})();
+
+// Row/column index labels are hidden by default; clicking the bare grey
+// page background (not any actual control) toggles them. Intentionally
+// undocumented in the UI.
+let rulerLabelsVisible=false;
+document.addEventListener('click',(e)=>{
+  if(e.target===document.body||e.target===mainLayoutEl){
+    rulerLabelsVisible=!rulerLabelsVisible;
+    gridRulerRow.classList.toggle('ruler-hidden',!rulerLabelsVisible);
+    gridRulerLeft.classList.toggle('ruler-hidden',!rulerLabelsVisible);
+  }
+});
 
 // Squares that belong to a multi-square block all share ONE uploaded image
 // (sized blockCols*SQ x blockRows*SQ). Each square crops its own SQ x SQ
@@ -1632,8 +1674,21 @@ function drawCellImage(sq,i,x,y){
   const img=new Image();img.onload=()=>{sq._img=img;previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';draw(img);};img.src=sq.imageData;
 }
 
+// Grey out a nav arrow once its direction is exhausted (the preview view
+// is already flush against that edge of the full 80x75 grid), so it's
+// visually clear there's nothing further to scroll to.
+function updatePreviewNavButtons(){
+  const atLeft=previewViewCol===0,atRight=(previewViewCol+PREV_COLS)>=COLS;
+  const atTop=previewViewRow===0,atBottom=(previewViewRow+PREV_ROWS)>=ROWS;
+  prevNavLeft.classList.toggle('at-edge',atLeft);
+  prevNavRight.classList.toggle('at-edge',atRight);
+  prevNavUp.classList.toggle('at-edge',atTop);
+  prevNavDown.classList.toggle('at-edge',atBottom);
+}
+
 function drawPreviewGrid(){
   updatePreviewOffsets();
+  updatePreviewNavButtons();
   previewGridCanvas.width=PREV_BOX_W;previewGridCanvas.height=PREV_BOX_H;
   previewGridCtx.imageSmoothingEnabled=true;previewGridCtx.imageSmoothingQuality='high';
   previewGridCtx.fillStyle='#e2e2e2';previewGridCtx.fillRect(0,0,PREV_BOX_W,PREV_BOX_H);
@@ -1809,6 +1864,19 @@ function init(){
   mosaicCanvas.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();const fe=firstEmpty();if(fe>=0){chosenSlot=fe;openClaimModal(fe);}}});
 
   $('btn-claim').addEventListener('click',()=>{const fe=firstEmpty();if(fe<0){showToast('All squares are claimed!');return;}chosenSlot=fe;openClaimModal(fe);});
+  $('btn-copy-email').addEventListener('click',async()=>{
+    const email='contact@6000squares.com';
+    try{
+      await navigator.clipboard.writeText(email);
+    }catch(err){
+      const ta=document.createElement('textarea');
+      ta.value=email;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.select();
+      try{document.execCommand('copy');}catch(e){}
+      document.body.removeChild(ta);
+    }
+    showToast('Email copied to clipboard!');
+  });
   $('claim-close').addEventListener('click',closeClaimModal);
 
   let mdDown=false;
