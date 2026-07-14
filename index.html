@@ -3,9 +3,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'none'; form-action 'self';">
 <title>6000 Squares - Own a piece of the internet!</title>
-<meta name="description" content="The website of notebook_92, a YouTuber and part-time programmer, who hopes to get a decent digital setup by selling 6000 squares of internet ad space for $3 each. Totally unrelated to The Million Dollar Homepage.">
+<meta name="description" content="The website of notebook_92, a YouTuber who hopes to get a decent digital setup by selling 6000 squares of internet ad space for $3 each. Totally unrelated to The Million Dollar Homepage.">
 <meta property="og:title" content="6000 Squares - Own a piece of the internet!">
-<meta property="og:description" content="The website of notebook_92, a YouTuber and part-time programmer, who hopes to get a decent digital setup by selling 6000 squares of internet ad space for $3 each. Totally unrelated to The Million Dollar Homepage.">
+<meta property="og:description" content="The website of notebook_92, a YouTuber who hopes to get a decent digital setup by selling 6000 squares of internet ad space for $3 each. Totally unrelated to The Million Dollar Homepage.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://6000squares.com">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&amp;family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
@@ -202,8 +202,9 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .btn-submit-final.loading .btn-spinner{display:block}
 .btn-primary{background:var(--navy);color:#fff;border:none;padding:10px 26px;font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1px;cursor:pointer;border-radius:var(--radius);transition:background .15s}
 .btn-primary:hover{background:var(--navy2)}
-#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(16px);background:#1b5e20;border:1px solid #388e3c;color:#c8e6c9;padding:11px 22px;border-radius:6px;font-size:14px;z-index:200;opacity:0;transition:opacity .3s,transform .3s;pointer-events:none;white-space:nowrap}
-#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#toast{position:fixed;bottom:26px;left:50%;transform:translateX(-50%) translateY(10px) scale(.96);background:#1b5e20;border:1px solid #388e3c;color:#c8e6c9;padding:11px 22px;border-radius:6px;font-size:14px;z-index:200;opacity:0;transition:opacity .35s cubic-bezier(.22,1,.36,1),transform .35s cubic-bezier(.22,1,.36,1);pointer-events:none;white-space:nowrap}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(-6px) scale(1)}
+#toast.hide{opacity:0;transform:translateX(-50%) translateY(-16px) scale(.98);transition:opacity .45s ease,transform .45s ease}
 footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);border-top:1px solid rgba(255,255,255,.1);margin-top:4px;flex-shrink:0}
 @media(prefers-reduced-motion:reduce){.spinner,.btn-submit-final .btn-spinner{animation:none}*{transition:none!important}}
 @media(max-width:700px){
@@ -264,8 +265,8 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
     <button class="btn-claim" id="btn-claim">Claim a Square!</button>
   </div>
   <div class="header-tabs-right">
-    <button type="button" class="header-tab" id="btn-copy-email">email me: contact@6000squares.com</button>
-    <a class="header-tab" href="https://www.youtube.com/@notebook_92" target="_blank" rel="noopener noreferrer">follow @notebook_92</a>
+    <button type="button" class="header-tab" id="btn-copy-email">Email me: contact@6000squares.com</button>
+    <a class="header-tab" href="https://www.youtube.com/@notebook_92" target="_blank" rel="noopener noreferrer">Follow @notebook_92</a>
   </div>
 </header>
 
@@ -775,7 +776,7 @@ function canvasClientToLocal(canvas,clientX,clientY){
   return{x:(clientX-rect.left)*sx,y:(clientY-rect.top)*sy,rect,sx,sy};
 }
 
-function showToast(msg){toast.textContent=msg;toast.classList.add('show');clearTimeout(toast._t);toast._t=setTimeout(()=>toast.classList.remove('show'),4000);}
+function showToast(msg){toast.textContent=msg;clearTimeout(toast._t);clearTimeout(toast._t2);toast.classList.remove('hide');void toast.offsetWidth;toast.classList.add('show');toast._t=setTimeout(()=>{toast.classList.remove('show');toast.classList.add('hide');toast._t2=setTimeout(()=>toast.classList.remove('hide'),450);},4000);}
 function showInlineError(id,msg){const el=$(id);if(!el)return;el.textContent=msg;msg?el.classList.add('show'):el.classList.remove('show');}
 function clearInlineErrors(){document.querySelectorAll('.inline-error').forEach(el=>{el.textContent='';el.classList.remove('show');});}
 function slotRC(i){return{row:(i/COLS)|0,col:i%COLS};}
