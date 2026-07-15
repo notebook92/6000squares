@@ -1042,7 +1042,11 @@ async function pollForConflicts(){
       const i=claim.slot;
       if(squares[i])continue; // already known
       squares[i]={imageData:null,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now(),anchorSlot:claim.anchor_slot??i,blockCols:claim.block_cols||1,blockRows:claim.block_rows||1};
-      renderSquareToCanvas(i);
+      // Don't call renderSquareToCanvas yet — imageData is still null at this
+      // point (the actual image is fetched just below), and renderSquareToCanvas
+      // would do img.src=null, which the browser resolves to the literal path
+      // "/null" and fails to load. The real render happens once the blob fetch
+      // below resolves and sets squares[i].imageData.
       fetch(`${API_BASE}/api/image/${i}`).then(r=>r.ok?r.blob():null).then(blob=>{
         if(!blob||!squares[i])return;
         const fr=new FileReader();
@@ -1517,8 +1521,12 @@ function handleSuccessRedirect(){
   const params=new URLSearchParams(window.location.search);
   if(params.get('success')==='1'){
     const slot=params.get('slot')?parseInt(params.get('slot'),10):-1;
-    const bc=Math.max(1,parseInt(params.get('block_cols'),10)||1);
-    const br=Math.max(1,parseInt(params.get('block_rows'),10)||1);
+    // Clamp to the real max block size (6x6, see CUSTOM_MAX) — these come
+    // straight from the URL query string, so without an upper bound a
+    // hand-crafted link (?success=1&block_cols=999999999) would hang the
+    // tab in the nested flash-animation loop below.
+    const bc=clamp(parseInt(params.get('block_cols'),10)||1,1,CUSTOM_MAX);
+    const br=clamp(parseInt(params.get('block_rows'),10)||1,1,CUSTOM_MAX);
     window.history.replaceState({},document.title,window.location.pathname);
     setTimeout(async()=>{
       const count=bc*br;
@@ -1542,7 +1550,7 @@ function handleSuccessRedirect(){
         const{row:ar,col:ac}=slotRC(slot);
         // Flash every square in the block, not just the anchor.
         const blockSlots=[];
-        for(let r=0;r<br;r++)for(let c=0;c<bc;c++){const rr=ar+r,cc=ac+c;if(rr<75&&cc<80)blockSlots.push(rcSlot(rr,cc));}
+        for(let r=0;r<br;r++)for(let c=0;c<bc;c++){const rr=ar+r,cc=ac+c;if(rr<ROWS&&cc<COLS)blockSlots.push(rcSlot(rr,cc));}
         const centerCol=ac+bc/2,centerRow=ar+br/2;
         scrollToGridPosition(centerCol*BUF_SQ,centerRow*BUF_SQ);
         setTimeout(()=>{
@@ -1825,8 +1833,8 @@ async function submitSquare(){
   submitBtn.disabled=true;submitBtn.setAttribute('aria-disabled','true');submitBtn.classList.add('loading');submitBtnLabel.textContent='Reserving…';
   showInlineError('checkout-error','');
   const don=Math.max(0,Math.floor((parseFloat(donationInput.value)||0)*100))/100;
+  let reservationToken=null;
   try{
-    let reservationToken=null;
     if(isUsingRealBackend){const reserveData=await reserveSlot(cb.anchor,[...cb.slots]);reservationToken=reserveData.reservation_token;currentReservationToken=reservationToken;}
     submitBtnLabel.textContent='Redirecting to payment…';
     const body=isUsingRealBackend
@@ -1834,11 +1842,24 @@ async function submitSquare(){
       :{slots:[...cb.slots],slot:cb.anchor,block_cols:cb.cols,block_rows:cb.rows,square_count:cb.count,imageData:currentImageData,description:currentDesc,url:currentUrl,donation:don};
     const res=await fetch(`${API_BASE}/api/create-checkout`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await res.json();
-    if(!res.ok){showInlineError('checkout-error',data.error||'Could not start payment. Please try again.');return;}
+    if(!res.ok){
+      // Server already released the reservation itself on any failure past the
+      // atomic lock step — but if this response came back from a failure BEFORE
+      // that point (e.g. a stale/rejected token), or the release below is
+      // simply a no-op by then, this call is always safe to make and closes
+      // the gap either way. Without it, a network hiccup here left the user's
+      // own squares looking "taken" to themselves for up to 10 minutes.
+      if(reservationToken)releaseReservation(reservationToken);
+      showInlineError('checkout-error',data.error||'Could not start payment. Please try again.');return;
+    }
     if(data.checkoutUrl){closeClaimModal();window.location.href=data.checkoutUrl;}
-    else{showInlineError('checkout-error','No checkout URL returned. Please contact support.');}
+    else{if(reservationToken)releaseReservation(reservationToken);showInlineError('checkout-error','No checkout URL returned. Please contact support.');}
   }catch(err){
     console.error('submitSquare error:',err);
+    // Network-level failure (offline, timeout, dropped connection) — the
+    // request may never have reached the server, so release proactively
+    // rather than leaving the user locked out of their own selection.
+    if(reservationToken)releaseReservation(reservationToken);
     const msg=(err&&err.message)?err.message:'Network error. Please check your connection and try again.';
     showInlineError('checkout-error',msg);
     if(/taken|reserved|claimed/i.test(msg))handleLiveConflict();
