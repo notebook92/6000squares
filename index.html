@@ -1582,7 +1582,7 @@ function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i!==toolti
 
 function vpMouseLeave(){tooltipEl.style.display='none';tooltipSlot=-1;}
 
-function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i])return;if(reservedSlots.has(i)){showToast('This space is reserved');return;}chosenSlot=i;openClaimModal(i);}
+function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i]){const link=squares[i].url;if(link)window.open(link,'_blank','noopener,noreferrer');return;}if(reservedSlots.has(i)){showToast('This space is reserved');return;}chosenSlot=i;openClaimModal(i);}
 
 function trapFocus(e){
   if(e.key!=='Tab')return;
