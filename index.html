@@ -1455,6 +1455,37 @@ function renderSquareToCanvas(i){
   });
 }
 
+// Hidden feature: press Space (with no popup open, no input focused) to
+// toggle slot-number labels on top of already-taken squares. Off by default.
+let showSlotNumbers=false;
+function drawTakenSlotNumbers(){
+  for(let i=0;i<TOTAL;i++){
+    if(!squares[i])continue;
+    const{row,col}=slotRC(i),dx=col*BUF_SQ,dy=row*BUF_SQ;
+    const boxH=BUF_SQ*0.34;
+    mosaicCtx.save();
+    mosaicCtx.fillStyle='rgba(0,0,0,0.55)';
+    mosaicCtx.fillRect(dx,dy+BUF_SQ-boxH,BUF_SQ,boxH);
+    mosaicCtx.fillStyle='#ffffff';
+    mosaicCtx.font=`${BUF_SQ*0.3}px Inter,sans-serif`;
+    mosaicCtx.textAlign='center';
+    mosaicCtx.textBaseline='middle';
+    mosaicCtx.fillText(i+1,dx+BUF_SQ/2,dy+BUF_SQ-boxH/2);
+    mosaicCtx.restore();
+  }
+}
+function redrawTakenSquares(){for(let i=0;i<TOTAL;i++)if(squares[i])renderSquareToCanvas(i);}
+function toggleSlotNumberOverlay(){showSlotNumbers=!showSlotNumbers;if(showSlotNumbers)drawTakenSlotNumbers();else redrawTakenSquares();}
+document.addEventListener('keydown',e=>{
+  if(e.code!=='Space'||e.repeat)return;
+  const ae=document.activeElement,tag=ae&&ae.tagName;
+  if(tag==='INPUT'||tag==='TEXTAREA'||tag==='BUTTON'||tag==='SELECT'||(ae&&ae.isContentEditable))return;
+  if(ae===mosaicCanvas)return; // canvas already uses Space to claim the first empty slot
+  if(claimOverlay.classList.contains('open')||customSizeOverlay.classList.contains('open'))return;
+  e.preventDefault();
+  toggleSlotNumberOverlay();
+});
+
 async function loadAllClaimed(){const cl=[];for(let i=0;i<TOTAL;i++)if(squares[i])cl.push(i);const B=50;for(let b=0;b<cl.length;b+=B)await Promise.all(cl.slice(b,b+B).map(renderSquareToCanvas));}
 
 async function fetchBoard(){
