@@ -1041,7 +1041,7 @@ async function pollForConflicts(){
     for(const claim of claimList){
       const i=claim.slot;
       if(squares[i])continue; // already known
-      squares[i]={imageData:null,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now(),anchorSlot:claim.anchor_slot??i,blockCols:claim.block_cols||1,blockRows:claim.block_rows||1};
+      squares[i]={imageData:null,desc:claim.description||'',url:claim.url||'',linkPending:!!claim.link_pending,timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now(),anchorSlot:claim.anchor_slot??i,blockCols:claim.block_cols||1,blockRows:claim.block_rows||1};
       // Don't call renderSquareToCanvas yet — imageData is still null at this
       // point (the actual image is fetched just below), and renderSquareToCanvas
       // would do img.src=null, which the browser resolves to the literal path
@@ -1473,7 +1473,7 @@ async function fetchBoard(){
           if(!imgRes.ok)return;
           const blob=await imgRes.blob();
           const dataUrl=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob);});
-          squares[i]={imageData:dataUrl,desc:claim.description||'',url:claim.url||'',timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now(),anchorSlot:claim.anchor_slot??i,blockCols:claim.block_cols||1,blockRows:claim.block_rows||1};
+          squares[i]={imageData:dataUrl,desc:claim.description||'',url:claim.url||'',linkPending:!!claim.link_pending,timestamp:claim.created_at?new Date(claim.created_at).getTime():Date.now(),anchorSlot:claim.anchor_slot??i,blockCols:claim.block_cols||1,blockRows:claim.block_rows||1};
         }catch(_){}
       }));
     }
@@ -1578,11 +1578,11 @@ function scrollToGridPosition(gx,gy){const rect=mosaicCanvas.getBoundingClientRe
 
 function slotFromPoint(cx,cy){const{x:gx,y:gy}=canvasClientToLocal(mosaicCanvas,cx,cy);if(gx<0||gy<0||gx>=GRID_W||gy>=GRID_H)return -1;return rcSlot((gy/BUF_SQ)|0,(gx/BUF_SQ)|0);}
 
-function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i!==tooltipSlot){tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];const tip=sq.desc||'';tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';}if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
+function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i!==tooltipSlot){tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];let tip=sq.desc||'';if(sq.linkPending)tip=(tip?tip+' — ':'')+'Link under review';tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';}if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
 
 function vpMouseLeave(){tooltipEl.style.display='none';tooltipSlot=-1;}
 
-function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i]){const link=squares[i].url;if(link)window.open(link,'_blank','noopener,noreferrer');return;}if(reservedSlots.has(i)){showToast('This space is reserved');return;}chosenSlot=i;openClaimModal(i);}
+function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i]){const link=squares[i].url;if(link){window.open(link,'_blank','noopener,noreferrer');}else if(squares[i].linkPending){showToast('Link under review');}return;}if(reservedSlots.has(i)){showToast('This space is reserved');return;}chosenSlot=i;openClaimModal(i);}
 
 function trapFocus(e){
   if(e.key!=='Tab')return;
