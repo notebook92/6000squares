@@ -1609,11 +1609,11 @@ function scrollToGridPosition(gx,gy){const rect=mosaicCanvas.getBoundingClientRe
 
 function slotFromPoint(cx,cy){const{x:gx,y:gy}=canvasClientToLocal(mosaicCanvas,cx,cy);if(gx<0||gy<0||gx>=GRID_W||gy>=GRID_H)return -1;return rcSlot((gy/BUF_SQ)|0,(gx/BUF_SQ)|0);}
 
-function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i!==tooltipSlot){tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];let tip=sq.desc||'';if(sq.linkPending)tip=(tip?tip+' — ':'')+'Link under review';tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';}if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
+function vpMouseMove(e){const i=slotFromPoint(e.clientX,e.clientY);if(i!==tooltipSlot){tooltipSlot=i;if(i>=0&&squares[i]){const sq=squares[i];let tip=sq.desc||'';if(sq.linkPending)tip=(tip?tip+' ':'')+'(URL under review)';tooltipEl.style.display=tip.trim()?'block':'none';tooltipEl.textContent=tip;}else tooltipEl.style.display='none';}if(tooltipEl.style.display==='block'){tooltipEl.style.left=(e.clientX+14)+'px';tooltipEl.style.top=(e.clientY+14)+'px';}}
 
 function vpMouseLeave(){tooltipEl.style.display='none';tooltipSlot=-1;}
 
-function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i]){const link=squares[i].url;if(link){window.open(link,'_blank','noopener,noreferrer');}else if(squares[i].linkPending){showToast('Link under review');}return;}if(reservedSlots.has(i)){showToast('This space is reserved');return;}chosenSlot=i;openClaimModal(i);}
+function handleGridClick(e){const i=slotFromPoint(e.clientX,e.clientY);if(i<0||i>=TOTAL)return;if(squares[i]){const link=squares[i].url;if(link){window.open(link,'_blank','noopener,noreferrer');}else if(squares[i].linkPending){showToast('URL under review');}return;}if(reservedSlots.has(i)){showToast('This space is reserved');return;}chosenSlot=i;openClaimModal(i);}
 
 function trapFocus(e){
   if(e.key!=='Tab')return;
