@@ -406,7 +406,7 @@ Link will be active upon revision.
         <div class="step0-body">
           <div class="upload-left">
             <div class="section-heading">Upload an Image</div>
-            <div class="upload-instructions">Move your image to your liking within the square.<br>Only what is shown in the square will appear on the website.<br>Transparent backgrounds will appear as white on the website.</div>
+            <div class="upload-instructions">Move your image to your liking within the square.<br>Only what is shown in the square will appear on the website.<br>Transparent pixels will appear as white on the website.</div>
             <div class="upload-controls" id="upload-ctrl-row" style="display: none;">
               <label for="crop-scale">Scale</label>
               <input type="range" id="crop-scale" min="30" max="400" value="100" aria-label="Image scale">
@@ -1047,7 +1047,7 @@ async function pollForConflicts(){
       // would do img.src=null, which the browser resolves to the literal path
       // "/null" and fails to load. The real render happens once the blob fetch
       // below resolves and sets squares[i].imageData.
-      fetch(`${API_BASE}/api/image/${i}`).then(r=>r.ok?r.blob():null).then(blob=>{
+      fetch(`${API_BASE}${claim.image_url||('/api/image/'+i)}`).then(r=>r.ok?r.blob():null).then(blob=>{
         if(!blob||!squares[i])return;
         const fr=new FileReader();
         fr.onload=()=>{if(squares[i]){squares[i].imageData=fr.result;renderSquareToCanvas(i);if(currentStep===1)drawPreviewGrid();}};
@@ -1500,7 +1500,7 @@ async function fetchBoard(){
       await Promise.all(claimList.slice(b,b+BATCH).map(async(claim)=>{
         const i=claim.slot;
         try{
-          const imgRes=await fetch(`${API_BASE}/api/image/${i}`);
+          const imgRes=await fetch(`${API_BASE}${claim.image_url||('/api/image/'+i)}`);
           if(!imgRes.ok)return;
           const blob=await imgRes.blob();
           const dataUrl=await new Promise(r=>{const fr=new FileReader();fr.onload=()=>r(fr.result);fr.readAsDataURL(blob);});
