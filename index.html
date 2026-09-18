@@ -500,7 +500,7 @@ Link will be active upon revision.
         <h3>Payment</h3>
         <div class="pay-row">
           <label id="pay-row-label">Claim a square</label>
-          <div style="display:flex;align-items:center;gap:8px"><span class="pay-required">Required</span><span class="pay-amount" id="pay-amount">$3.00</span></div>
+          <div style="display:flex;align-items:center;gap:8px"><span class="pay-required">Required</span><span class="pay-amount" id="pay-amount">$3.00 USD</span></div>
         </div>
         <div class="donation-row">
           <label for="donation-input">Support the project <span style="color:#bbb;font-size:11px">(optional)</span></label>
@@ -512,7 +512,7 @@ Link will be active upon revision.
         </div>
         <div class="pay-total-row">
           <span class="total-label">Total charged</span>
-          <span class="total-amt" id="total-display" aria-live="polite">$3.00</span>
+          <span class="total-amt" id="total-display" aria-live="polite">$3.00 USD</span>
         </div>
         <div class="stripe-badge">Powered by <strong style="color:#635BFF">Stripe</strong></div>
       </div>
@@ -1169,7 +1169,7 @@ function updateModalTitle(){
   const titleEl=$('modal-title-id');
   if(titleEl)titleEl.textContent=count===1?'Claim Your Square':(isCustomShape(bc,br)?`Claim Your Custom ${bc}×${br} Space`:`Claim Your ${bc}×${br} Space`);
   const payAmountEl=$('pay-amount');
-  if(payAmountEl)payAmountEl.textContent='$'+chosenBlock.price.toFixed(2);
+  if(payAmountEl)payAmountEl.textContent='$'+chosenBlock.price.toFixed(2)+' USD';
   const payRowLabel=$('pay-row-label');
   if(payRowLabel)payRowLabel.textContent=chosenBlock.count===1?'Claim a square':`Claim ${chosenBlock.count} squares (${chosenBlock.cols}×${chosenBlock.rows})`;
   const piBox=$('preview-info-box');
@@ -1846,7 +1846,7 @@ function trySelectSlot(newSlot){
 }
 function jumpToSlot(n){return trySelectSlot(clamp(n-1,0,TOTAL-1));}
 
-function updateTotal(){const don=Math.max(0,parseFloat(donationInput.value)||0);const total=(chosenBlock.price+don).toFixed(2);totalDisplay.textContent='$'+total;if(cb1.checked&&cb2.checked)submitBtnLabel.textContent='Pay $'+total+' & Submit';}
+function updateTotal(){const don=Math.max(0,parseFloat(donationInput.value)||0);const total=(chosenBlock.price+don).toFixed(2);totalDisplay.textContent='$'+total+' USD';if(cb1.checked&&cb2.checked)submitBtnLabel.textContent='Pay $'+total+' & Submit';}
 
 function checkReady(){const ok=cb1.checked&&cb2.checked;submitBtn.disabled=!ok;submitBtn.setAttribute('aria-disabled',String(!ok));if(ok)updateTotal();}
 
