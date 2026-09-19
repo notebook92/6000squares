@@ -1024,7 +1024,7 @@ function initCustomSizePickerEvents(){
 // is told to pick a different spot.
 function startClaimPolling(){
   stopClaimPolling();
-  claimPollId=setInterval(pollForConflicts,4000);
+  claimPollId=setInterval(()=>{ if(!document.hidden) pollForConflicts(); },4000);
 }
 function stopClaimPolling(){
   if(claimPollId){clearInterval(claimPollId);claimPollId=null;}
@@ -1067,6 +1067,7 @@ let reservedPollId=null;
 function startReservedPolling(){
   if(reservedPollId)return;
   reservedPollId=setInterval(async()=>{
+    if(document.hidden)return; // tab backgrounded — skip this tick entirely
     if(!isUsingRealBackend||claimOverlay.classList.contains('open'))return; // modal has its own faster poll
     try{
       const res=await fetch(`${API_BASE}/api/board`);
@@ -1076,6 +1077,14 @@ function startReservedPolling(){
     }catch(_){}
   },8000);
 }
+// When the tab regains focus after being hidden, do one immediate refresh
+// so the board catches up right away instead of waiting for the next tick.
+document.addEventListener('visibilitychange',()=>{
+  if(!document.hidden&&isUsingRealBackend){
+    if(claimOverlay.classList.contains('open'))pollForConflicts();
+    else fetch(`${API_BASE}/api/board`).then(r=>r.ok?r.json():null).then(data=>{if(data)applyReservedSlots(data.reservedSlots||[]);}).catch(()=>{});
+  }
+});
 function handleLiveConflict(){
   const count=chosenBlock?chosenBlock.count:1;
   const msg=count===1?'This square is taken. Please choose another.':'Part of this selection is taken. Please choose another position.';
