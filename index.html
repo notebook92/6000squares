@@ -241,8 +241,8 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 .custom-size-box{background:#fff;border-radius:8px;border-top:4px solid var(--red);width:92vw;max-width:380px;padding:20px 22px;position:relative;color:var(--text)}
 .custom-size-title{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;color:var(--navy)}
 .custom-size-sub{font-size:11px;color:#888;margin:3px 0 14px}
-#custom-size-grid{display:grid;gap:2px;margin:0 auto 12px;width:240px;height:240px}
-.css-cell{background:#f0f0f0;border:1px solid #ddd;border-radius:2px}
+#custom-size-grid{display:grid;gap:2px;margin:0 auto 12px;width:240px;height:240px;touch-action:none;-webkit-user-select:none;user-select:none}
+.css-cell{background:#f0f0f0;border:1px solid #ddd;border-radius:2px;touch-action:none}
 .css-cell.css-sel{background:#ffd7d7;border-color:var(--red)}
 .css-cell.css-anchor{box-shadow:inset 0 0 0 2px var(--red)}
 .custom-size-readout{text-align:center;font-size:13px;color:var(--navy);font-weight:700;margin-bottom:4px}
@@ -1009,6 +1009,7 @@ function initCustomSizePickerEvents(){
     csCurR=r;csCurC=c;renderCustomSizeGrid();e.preventDefault();
   },{passive:false});
   customSizeGrid.addEventListener('touchend',()=>{csDragging=false;});
+  customSizeGrid.addEventListener('touchcancel',()=>{csDragging=false;});
   $('custom-size-confirm').addEventListener('click',confirmCustomSize);
   $('custom-size-cancel').addEventListener('click',closeCustomSizePicker);
   $('custom-size-close').addEventListener('click',closeCustomSizePicker);
