@@ -386,7 +386,7 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
             <div>
               <label class="field-label" for="draw-desc">Image Description*</label>
               <input type="text" id="draw-desc" class="field-input field-error" maxlength="160" placeholder="e.g. Click here to check us out!" aria-describedby="draw-desc-err">
-              <div class="inline-error show" id="draw-desc-err" role="alert">Please enter a description (type a single space if you want to have a blank pop-up).</div>
+              <div class="inline-error show" id="draw-desc-err" role="alert">Please enter a description.</div>
             </div>
             <div>
               <label class="field-label" for="draw-url">URL**</label>
@@ -785,16 +785,15 @@ function claimedCount(){let c=0;for(let i=0;i<TOTAL;i++)if(squares[i])c++;return
 function firstEmpty(){for(let i=0;i<TOTAL;i++)if(!squares[i]&&!reservedSlots.has(i))return i;return -1;}
 function normalizeUrl(str){let v=(str||'').trim();if(v&&!/^https?:\/\//i.test(v))v='https://'+v;return v;}
 function validateUrl(str){if(!str||!str.trim())return null;const v=normalizeUrl(str);try{const u=new URL(v);if(u.protocol!=='https:'&&u.protocol!=='http:')return 'Please enter a valid URL';return null;}catch(_){return 'Please enter a valid URL (e.g. yourlink.com)';}}
-// Both the description and URL fields must contain SOMETHING before moving
-// on — but a field that's genuinely empty (zero characters) is what's
-// disallowed, not a field with meaningful content. Someone who really wants
-// to leave a field blank can type a single space (" ") — that still counts
-// as "filled" here, so it's an easy intentional opt-out rather than a hard
-// requirement to write real text. Only actual URL-shaped text in the URL
-// field gets format-validated; a lone space skips that check entirely.
+// The description field requires real content — a blank or whitespace-only
+// popup is no longer allowed, so this checks trimmed length, not just
+// "something was typed" (a lone space used to satisfy the old check).
+// The URL field is unaffected: it's optional, and the old "type a single
+// space to skip it" opt-out still works so links keep functioning exactly
+// as before.
 function requireDescAndUrlFilled(descEl,urlEl,descErrId,urlErrId){
   let ok=true;
-  if(descEl.value.length===0){showInlineError(descErrId,'Please enter a description (type a single space if you want to have a blank pop-up).');descEl.classList.add('field-error');ok=false;}
+  if(descEl.value.trim().length===0){showInlineError(descErrId,'Please enter a description.');descEl.classList.add('field-error');ok=false;}
   if(urlEl.value.length===0){showInlineError(urlErrId,'Please enter a URL (type a single space if you do not want to add a link).');urlEl.classList.add('field-error');ok=false;}
   else if(urlEl.value.trim()){const err=validateUrl(urlEl.value);if(err){showInlineError(urlErrId,err);urlEl.classList.add('field-error');ok=false;}}
   return ok;
