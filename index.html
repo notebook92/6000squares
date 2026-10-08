@@ -241,8 +241,8 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
 .custom-size-box{background:#fff;border-radius:8px;border-top:4px solid var(--red);width:92vw;max-width:380px;padding:20px 22px;position:relative;color:var(--text)}
 .custom-size-title{font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:1px;color:var(--navy)}
 .custom-size-sub{font-size:11px;color:#888;margin:3px 0 14px}
-#custom-size-grid{display:grid;gap:2px;margin:0 auto 12px;width:240px;height:240px;touch-action:none;-webkit-user-select:none;user-select:none}
-.css-cell{background:#f0f0f0;border:1px solid #ddd;border-radius:2px;touch-action:none}
+#custom-size-grid{display:grid;gap:2px;margin:0 auto 12px;width:240px;height:240px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+.css-cell{background:#f0f0f0;border:1px solid #ddd;border-radius:2px;touch-action:none;pointer-events:auto}
 .css-cell.css-sel{background:#ffd7d7;border-color:var(--red)}
 .css-cell.css-anchor{box-shadow:inset 0 0 0 2px var(--red)}
 .custom-size-readout{text-align:center;font-size:13px;color:var(--navy);font-weight:700;margin-bottom:4px}
@@ -936,18 +936,37 @@ function customSizeSelection(){
   const c0=Math.min(csAnchorC,csCurC),c1=Math.max(csAnchorC,csCurC);
   return{r0,r1,c0,c1,rows:(r1-r0+1),cols:(c1-c0+1)};
 }
-function renderCustomSizeGrid(){
+// IMPORTANT (mobile): the cells are built ONCE and then only have their classes
+// toggled. Never rebuild them (innerHTML=''/appendChild) while a finger is down:
+// on touch devices every touchmove/touchend is dispatched to the element the
+// touch STARTED on, and if that element has been removed from the DOM the
+// events no longer bubble to the grid — the drag silently dies after the
+// first cell. Keeping the nodes alive (plus pointer capture, below) fixes it.
+let csCells=[];
+function buildCustomSizeGrid(){
   customSizeGrid.innerHTML='';
   customSizeGrid.style.gridTemplateColumns=`repeat(${CUSTOM_MAX},1fr)`;
   customSizeGrid.style.gridTemplateRows=`repeat(${CUSTOM_MAX},1fr)`;
-  const sel=customSizeSelection();
+  csCells=[];
   for(let r=0;r<CUSTOM_MAX;r++){
     for(let c=0;c<CUSTOM_MAX;c++){
       const cell=document.createElement('div');
-      const inSel=r>=sel.r0&&r<=sel.r1&&c>=sel.c0&&c<=sel.c1;
-      cell.className='css-cell'+(inSel?' css-sel':'')+(r===csAnchorR&&c===csAnchorC?' css-anchor':'');
+      cell.className='css-cell';
       cell.dataset.r=r;cell.dataset.c=c;
       customSizeGrid.appendChild(cell);
+      csCells.push(cell);
+    }
+  }
+}
+function renderCustomSizeGrid(){
+  if(csCells.length!==CUSTOM_MAX*CUSTOM_MAX)buildCustomSizeGrid();
+  const sel=customSizeSelection();
+  for(let r=0;r<CUSTOM_MAX;r++){
+    for(let c=0;c<CUSTOM_MAX;c++){
+      const cell=csCells[r*CUSTOM_MAX+c];
+      const inSel=r>=sel.r0&&r<=sel.r1&&c>=sel.c0&&c<=sel.c1;
+      cell.classList.toggle('css-sel',inSel);
+      cell.classList.toggle('css-anchor',r===csAnchorR&&c===csAnchorC);
     }
   }
   const count=sel.cols*sel.rows;
@@ -988,27 +1007,39 @@ function confirmCustomSize(){
   renderBlockPicker();resizeDrawCanvas();updateModalTitle();
 }
 function initCustomSizePickerEvents(){
-  customSizeGrid.addEventListener('mousedown',e=>{
-    const cell=e.target.closest('.css-cell');if(!cell)return;
-    csDragging=true;csAnchorR=+cell.dataset.r;csAnchorC=+cell.dataset.c;csCurR=csAnchorR;csCurC=csAnchorC;
-    renderCustomSizeGrid();e.preventDefault();
-  });
-  customSizeGrid.addEventListener('mousemove',e=>{
-    if(!csDragging)return;
+  // One unified Pointer Events path for mouse, touch and pen. The grid captures
+  // the pointer on press, so move/up/cancel keep arriving here even if the
+  // finger slides outside the grid or the page tries to take over the gesture.
+  let csPointerId=null;
+  const csEnd=e=>{
+    if(csPointerId===null)return;
+    if(e&&e.pointerId!==undefined&&e.pointerId!==csPointerId)return;
+    try{customSizeGrid.releasePointerCapture(csPointerId);}catch(_){}
+    csPointerId=null;csDragging=false;
+  };
+  customSizeGrid.addEventListener('pointerdown',e=>{
+    if(e.pointerType==='mouse'&&e.button!==0)return;
+    if(csPointerId!==null)return;                 // ignore a second finger
+    csPointerId=e.pointerId;csDragging=true;
+    try{customSizeGrid.setPointerCapture(e.pointerId);}catch(_){}
     const{r,c}=customCellFromPoint(e.clientX,e.clientY);
-    csCurR=r;csCurC=c;renderCustomSizeGrid();
+    csAnchorR=r;csAnchorC=c;csCurR=r;csCurC=c;
+    renderCustomSizeGrid();
+    e.preventDefault();
   });
-  document.addEventListener('mouseup',()=>{csDragging=false;});
-  customSizeGrid.addEventListener('touchstart',e=>{
-    const t=e.touches[0];const{r,c}=customCellFromPoint(t.clientX,t.clientY);
-    csDragging=true;csAnchorR=r;csAnchorC=c;csCurR=r;csCurC=c;renderCustomSizeGrid();e.preventDefault();
-  },{passive:false});
-  customSizeGrid.addEventListener('touchmove',e=>{
-    if(!csDragging)return;const t=e.touches[0];const{r,c}=customCellFromPoint(t.clientX,t.clientY);
-    csCurR=r;csCurC=c;renderCustomSizeGrid();e.preventDefault();
-  },{passive:false});
-  customSizeGrid.addEventListener('touchend',()=>{csDragging=false;});
-  customSizeGrid.addEventListener('touchcancel',()=>{csDragging=false;});
+  customSizeGrid.addEventListener('pointermove',e=>{
+    if(!csDragging||e.pointerId!==csPointerId)return;
+    const{r,c}=customCellFromPoint(e.clientX,e.clientY);
+    if(r!==csCurR||c!==csCurC){csCurR=r;csCurC=c;renderCustomSizeGrid();}
+    e.preventDefault();
+  });
+  customSizeGrid.addEventListener('pointerup',csEnd);
+  customSizeGrid.addEventListener('pointercancel',csEnd);
+  customSizeGrid.addEventListener('lostpointercapture',csEnd);
+  // Block the long-press context menu / text-selection callout on mobile.
+  customSizeGrid.addEventListener('contextmenu',e=>e.preventDefault());
+  // Safety net: if the picker is closed mid-drag, drop the gesture state.
+  customSizeOverlay.addEventListener('pointerup',csEnd);
   $('custom-size-confirm').addEventListener('click',confirmCustomSize);
   $('custom-size-cancel').addEventListener('click',closeCustomSizePicker);
   $('custom-size-close').addEventListener('click',closeCustomSizePicker);
