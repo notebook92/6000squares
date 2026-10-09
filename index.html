@@ -82,7 +82,9 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 .brush-row{display:flex;align-items:center;gap:6px}
 .brush-row input[type="range"]{width:80px;accent-color:var(--red)}
 .brush-row input[type="number"]{width:38px;border:1.5px solid #ddd;border-radius:3px;padding:3px 4px;font-size:11px;text-align:center}
-.hex-display{font-size:11px;font-family:monospace;background:#f5f5f5;border:1.5px solid #ddd;border-radius:3px;padding:3px 8px;color:#333}
+.hex-display{font-size:11px;font-family:monospace;background:#f5f5f5;border:1.5px solid #ddd;border-radius:3px;padding:3px 8px;color:#333;width:86px;box-sizing:border-box;outline:none}
+.hex-display:focus{border-color:var(--red);background:#fff}
+@media (pointer:coarse){.hex-display{font-size:16px;width:104px}} /* 16px stops iOS zooming the page on focus */
 .picker-wrap{display:flex;flex-direction:column;gap:4px}
 #sv-canvas{width:100%;height:130px;border-radius:3px;cursor:crosshair;display:block}
 #spectrum-bar{width:100%;height:16px;border-radius:3px;cursor:crosshair;display:block;border:1px solid #ddd}
@@ -113,8 +115,6 @@ header{background:var(--navy);color:#fff;display:flex;align-items:center;justify
 #shade-picker-wrap.open{display:flex}
 .color-input-row{display:flex;align-items:center;gap:6px}
 .color-input-row label{font-size:10px;color:#888}
-#color-text-input{border:1.5px solid #ddd;border-radius:3px;padding:4px 7px;font-size:11px;font-family:monospace;width:110px;outline:none}
-#color-text-input:focus{border-color:var(--red)}
 .upload-left{display:flex;flex-direction:column;gap:8px}
 .upload-instructions{font-size:11px;color:#666;line-height:1.6}
 .upload-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -328,18 +328,12 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
                 <input type="range" id="brush-size" min="1" max="80" value="14" aria-label="Brush size">
                 <input type="number" id="brush-size-num" min="1" max="80" value="14" aria-label="Brush size value">
               </div>
-              <span class="hex-display" id="active-hex" aria-live="polite">#B22234</span>
+              <input type="text" class="hex-display" id="active-hex" value="#B22234" maxlength="24" spellcheck="false" autocomplete="off" autocorrect="off" autocapitalize="off" aria-label="Color hex value (type to change the color)" title="Type a hex color, e.g. #ff8800">
               <button class="grid-toggle-btn" id="btn-toggle-draw-grid" title="Toggle square grid overlay" aria-pressed="false">⊞ Grid</button>
             </div>
             <div class="picker-wrap">
               <canvas id="sv-canvas" height="130" aria-label="Saturation/brightness picker. Use hex input below for keyboard access." width="388"></canvas>
               <canvas id="spectrum-bar" height="16" aria-label="Hue spectrum picker." width="388"></canvas>
-              <div id="shade-picker-wrap" class="open">
-                <div class="color-input-row">
-                  <label for="color-text-input">HEX </label>
-                  <input type="text" id="color-text-input" placeholder="#B22234" aria-label="Color hex or RGB value">
-                </div>
-              </div>
             </div>
             <div class="canvas-tools-row">
               <div class="draw-canvas-wrap">
@@ -353,11 +347,11 @@ footer{text-align:center;padding:14px;font-size:11px;color:rgba(255,255,255,.4);
                 <button class="tool-icon-btn active" data-tool="pen" title="Pen" aria-label="Pen tool" aria-pressed="true">
                   <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true"><path d="M13.5 1.5L16.5 4.5L6 15H3V12L13.5 1.5Z" stroke="#555" stroke-width="1.4" stroke-linejoin="round"></path><path d="M11.25 3.75L14.25 6.75" stroke="#555" stroke-width="1" stroke-linecap="round"></path></svg>
                 </button>
-                <button class="tool-icon-btn" data-tool="eraser" title="Eraser" aria-label="Eraser tool" aria-pressed="false">
-                  <svg width="18" height="18" viewBox="0 0 71 61" aria-hidden="true"><g data-fill="1" transform="translate(0.000000,61.000000) scale(0.100000,-0.100000)" fill="#555" stroke="none"><path d="M225 370 l-200 -200 65 -65 64 -65 258 0 258 0 0 25 0 25 -130 0 -130 0 0 8 0 7 120 120 120 120 0 9 0 9 -106 101 -107 101 -6 3 -6 2 -200 -200z m92 -142 l73 -72 0 -10 0 -10 -22 -23 -21 -23 -87 0 -86 0 -39 40 -39 40 64 65 64 65 10 0 11 0 72 -72z"></path></g></svg>
-                </button>
                 <button class="tool-icon-btn" data-tool="fill" title="Fill" aria-label="Fill tool" aria-pressed="false">
                   <svg width="17" height="17" viewBox="6 6 52 49" aria-hidden="true"><g data-fill="1" transform="translate(0.000000,98.000000) scale(0.100000,-0.100000)" fill="#555" stroke="none"><path d="M163 913 l-13 -5 0 -22 0 -22 20 -14 20 -14 0 -21 0 -21 -65 -64 -65 -64 0 -28 0 -28 90 -90 89 -90 11 0 11 0 21 11 21 11 74 76 74 77 5 22 6 23 -118 126 -119 126 -17 9 -17 9 -8 -1 -8 -1 -12 -5z m173 -210 l66 -68 -137 -3 -138 -3 -4 5 -4 4 63 65 63 66 13 0 13 1 65 -67z"></path><path d="M505 587 l-10 -13 -17 -31 -18 -31 0 -20 0 -21 26 -20 27 -21 6 0 6 0 28 24 27 23 0 16 0 16 -24 43 -24 42 -8 3 -9 2 -10 -12z"></path></g></svg>
+                </button>
+                <button class="tool-icon-btn" data-tool="eraser" title="Eraser" aria-label="Eraser tool" aria-pressed="false">
+                  <svg width="18" height="18" viewBox="0 0 71 61" aria-hidden="true"><g data-fill="1" transform="translate(0.000000,61.000000) scale(0.100000,-0.100000)" fill="#555" stroke="none"><path d="M225 370 l-200 -200 65 -65 64 -65 258 0 258 0 0 25 0 25 -130 0 -130 0 0 8 0 7 120 120 120 120 0 9 0 9 -106 101 -107 101 -6 3 -6 2 -200 -200z m92 -142 l73 -72 0 -10 0 -10 -22 -23 -21 -23 -87 0 -86 0 -39 40 -39 40 64 65 64 65 10 0 11 0 72 -72z"></path></g></svg>
                 </button>
                 <button class="tool-icon-btn" data-tool="eyedropper" title="Pick Color" aria-label="Eyedropper tool" aria-pressed="false">
                   <svg width="18" height="18" viewBox="0 0 69 68" aria-hidden="true"><g data-fill="1" transform="translate(0.000000,68.000000) scale(0.100000,-0.100000)" fill="#555" stroke="none"><path d="M495 631 l-30 -18 -29 -31 -29 -31 -20 10 -19 11 -38 -37 -39 -38 11 -16 10 -17 -72 -69 -72 -70 -39 -57 -39 -57 0 -15 0 -14 -25 -30 -25 -30 0 -9 0 -9 34 -33 35 -34 38 32 38 31 20 0 20 0 30 20 30 19 87 88 88 88 19 -12 18 -12 38 39 38 39 -13 16 -13 15 48 51 47 51 -4 48 -5 48 -14 14 -15 13 -22 13 -22 12 -17 0 -18 0 -30 -19z m-162 -373 l-98 -98 -35 -11 -35 -12 -23 -15 -23 -15 -5 6 -6 6 21 44 21 43 0 12 0 12 100 102 100 102 40 -39 40 -39 -97 -98z"></path></g></svg>
@@ -711,7 +705,7 @@ const brushSizeEl=$('brush-size'),brushSizeNum=$('brush-size-num');
 const activeSwatch=$('active-swatch'),swatchCtx=activeSwatch.getContext('2d');
 const activeHexEl=$('active-hex'),svCanvas=$('sv-canvas'),svCtx=svCanvas.getContext('2d');
 const spectrumBar=$('spectrum-bar'),spCtx=spectrumBar.getContext('2d');
-const colorTextInput=$('color-text-input');
+const colorTextInput=activeHexEl; // the editable hex badge is the one color text field
 const drawDescEl=$('draw-desc'),uploadDescEl=$('upload-desc');
 const uploadZone=$('upload-zone'),uploadFileEl=$('upload-file');
 const cropUI=$('crop-ui'),cropViewport=$('crop-viewport'),cropImg=$('crop-img');
@@ -807,7 +801,8 @@ function hexToHSV(hex){let r=parseInt(hex.slice(1,3),16)/255,g=parseInt(hex.slic
 function rgbToHex(r,g,b){return'#'+r.toString(16).padStart(2,'0')+g.toString(16).padStart(2,'0')+b.toString(16).padStart(2,'0');}
 function parseColorInput(str){str=str.trim();if(/^#[0-9a-f]{6}$/i.test(str))return str.toLowerCase();if(/^#[0-9a-f]{3}$/i.test(str))return('#'+str[1]+str[1]+str[2]+str[2]+str[3]+str[3]).toLowerCase();const rgb=str.match(/^rgb\s*\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)$/i);if(rgb)return rgbToHex(+rgb[1],+rgb[2],+rgb[3]);return null;}
 
-function applyHex(hex){curHex=hex;const hsv=hexToHSV(hex);curHue=hsv.h;curSat=hsv.s;curVal=hsv.v;swatchCtx.fillStyle=hex;swatchCtx.fillRect(0,0,32,32);activeHexEl.textContent=hex;colorTextInput.value=hex;drawSVCanvas();drawSpectrumBar();}
+let hexFromTyping=false; // true while applyHex is driven by the user typing, so we don't rewrite the field under their cursor
+function applyHex(hex){curHex=hex;const hsv=hexToHSV(hex);curHue=hsv.h;curSat=hsv.s;curVal=hsv.v;swatchCtx.fillStyle=hex;swatchCtx.fillRect(0,0,32,32);if(!hexFromTyping)colorTextInput.value=hex;drawSVCanvas();drawSpectrumBar();}
 function drawSVCanvas(){const w=svCanvas.width=svCanvas.offsetWidth||260,h=svCanvas.height;const hueHex=hsvToHex(curHue,1,1);const g1=svCtx.createLinearGradient(0,0,w,0);g1.addColorStop(0,'#fff');g1.addColorStop(1,hueHex);svCtx.fillStyle=g1;svCtx.fillRect(0,0,w,h);const g2=svCtx.createLinearGradient(0,0,0,h);g2.addColorStop(0,'rgba(0,0,0,0)');g2.addColorStop(1,'#000');svCtx.fillStyle=g2;svCtx.fillRect(0,0,w,h);const mx=curSat*w,my=(1-curVal)*h;svCtx.beginPath();svCtx.arc(mx,my,5,0,6.283);svCtx.strokeStyle='#fff';svCtx.lineWidth=2;svCtx.stroke();svCtx.beginPath();svCtx.arc(mx,my,5,0,6.283);svCtx.strokeStyle='rgba(0,0,0,.4)';svCtx.lineWidth=1;svCtx.stroke();}
 function drawSpectrumBar(){const w=spectrumBar.width=spectrumBar.offsetWidth||260,h=spectrumBar.height;const grad=spCtx.createLinearGradient(0,0,w,0);['#f00','#ff0','#0f0','#0ff','#00f','#f0f','#f00'].forEach((c,i)=>grad.addColorStop(i/6,c));spCtx.fillStyle=grad;spCtx.fillRect(0,0,w,h);const mx=(curHue/360)*w;spCtx.strokeStyle='#fff';spCtx.lineWidth=2;spCtx.beginPath();spCtx.moveTo(mx,0);spCtx.lineTo(mx,h);spCtx.stroke();}
 function svPick(e){const r=svCanvas.getBoundingClientRect();curSat=clamp((e.clientX-r.left)/r.width,0,1);curVal=1-clamp((e.clientY-r.top)/r.height,0,1);applyHex(hsvToHex(curHue,curSat,curVal));}
@@ -1998,7 +1993,25 @@ function init(){
   spectrumBar.addEventListener('touchstart',e=>{e.preventDefault();specPickX(e.touches[0].clientX);},{passive:false});
   spectrumBar.addEventListener('touchmove',e=>{e.preventDefault();specPickX(e.touches[0].clientX);},{passive:false});
 
-  colorTextInput.addEventListener('change',()=>{const h=parseColorInput(colorTextInput.value);if(h)applyHex(h);else colorTextInput.value=curHex;});
+  // Editable hex box: live-applies as soon as a full 6-digit hex is typed;
+  // on Enter/blur also accepts 3-digit hex, hex without '#', and rgb(r,g,b);
+  // anything unparseable snaps back to the current color.
+  const commitHexInput=()=>{
+    const raw=colorTextInput.value.trim();
+    const h=parseColorInput(/^([0-9a-f]{3}|[0-9a-f]{6})$/i.test(raw)?'#'+raw:raw);
+    if(h)applyHex(h);
+    colorTextInput.value=curHex;
+  };
+  colorTextInput.addEventListener('input',()=>{
+    const m=/^#?([0-9a-f]{6})$/i.exec(colorTextInput.value.trim());
+    if(!m)return;
+    hexFromTyping=true;
+    try{applyHex('#'+m[1].toLowerCase());}finally{hexFromTyping=false;}
+  });
+  colorTextInput.addEventListener('change',commitHexInput);
+  colorTextInput.addEventListener('blur',commitHexInput);
+  colorTextInput.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();colorTextInput.blur();}});
+  colorTextInput.addEventListener('focus',()=>{try{colorTextInput.select();}catch(_){}});
 
   drawCanvas.addEventListener('mousedown',onDrawStart);
   drawCanvas.addEventListener('mousemove',onDrawMove);
